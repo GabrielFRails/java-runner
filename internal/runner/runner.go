@@ -7,7 +7,7 @@ import (
 	"github.com/GabrielFRails/assinatura/internal/storage"
 )
 
-const minJavaMajor = 17
+const minJavaMajor = 21
 
 type StartupResult struct {
 	JavaInfo *environment.JavaInfo
