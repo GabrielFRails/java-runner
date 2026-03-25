@@ -72,11 +72,11 @@ func runStatus() error {
 	fmt.Printf("Java                  : %s\n", javaInfo.Version)
 	fmt.Printf("Java path             : %s\n", javaInfo.Path)
 
-	if environment.IsVersionCompatible(javaInfo.Version, 17) {
-		fmt.Printf("Java compatível       : sim (mínimo: 17)\n")
-	} else {
-		fmt.Printf("Java compatível       : não (mínimo: 17, encontrado: %s)\n", javaInfo.Version)
-	}
+	if environment.IsVersionCompatible(javaInfo.Version, runner.MinJavaMajor) {
+        fmt.Printf("Java compatível       : sim (mínimo: %d)\n", runner.MinJavaMajor)
+    } else {
+        fmt.Printf("Java compatível       : não (mínimo: %d, encontrado: %s)\n", runner.MinJavaMajor, javaInfo.Version)
+    }
 
 	return nil
 }
