@@ -10,4 +10,5 @@ go get github.com/spf13/cobra
 # SQLite para o banco local
 go get github.com/mattn/go-sqlite3
 
+go mod tidy
 ```
