@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build multiplataforma
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            output: assinatura-linux-amd64
+          - goos: windows
+            goarch: amd64
+            output: assinatura-windows-amd64.exe
+          - goos: darwin
+            goarch: amd64
+            output: assinatura-darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            output: assinatura-darwin-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build \
+            -ldflags "-X main.version=dev-${{ github.sha }}" \
+            -o ${{ matrix.output }} \
+            ./cmd/assinatura
+
+      - name: Upload artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output }}
+          path: ${{ matrix.output }}

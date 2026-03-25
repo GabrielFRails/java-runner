@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # dispara em tags como v1.0.0, v0.1.0, etc.
+
+permissions:
+  contents: write  # necessário para criar releases e publicar artefatos
+  id-token: write  # necessário para Cosign com OIDC (Sprint 4)
+
+jobs:
+  release:
+    name: Build e publicar release
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            output: assinatura-${{ github.ref_name }}-linux-amd64
+          - goos: windows
+            goarch: amd64
+            output: assinatura-${{ github.ref_name }}-windows-amd64.exe
+          - goos: darwin
+            goarch: amd64
+            output: assinatura-${{ github.ref_name }}-darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            output: assinatura-${{ github.ref_name }}-darwin-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build \
+            -ldflags "-X main.version=${{ github.ref_name }}" \
+            -o ${{ matrix.output }} \
+            ./cmd/assinatura
+
+      - name: Gerar checksum SHA256
+        run: sha256sum ${{ matrix.output }} >> checksums.txt
+
+      - name: Upload artefato temporário
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output }}
+          path: |
+            ${{ matrix.output }}
+            checksums.txt
+
+  publish:
+    name: Publicar no GitHub Releases
+    runs-on: ubuntu-latest
+    needs: release  # aguarda todos os builds terminarem
+
+    steps:
+      - name: Baixar todos os artefatos
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Consolidar checksums
+        run: cat artifacts/checksums.txt > checksums.txt
+
+      - name: Publicar release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}  # v1.0.0-beta vira prerelease
+          files: |
+            artifacts/assinatura-*
+            checksums.txt
+          generate_release_notes: true  # gera notas automáticas a partir dos commits
