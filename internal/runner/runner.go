@@ -7,7 +7,7 @@ import (
 	"github.com/GabrielFRails/assinatura/internal/storage"
 )
 
-const minJavaMajor = 21
+const MinJavaMajor = 21
 
 type StartupResult struct {
 	JavaInfo *environment.JavaInfo
@@ -36,10 +36,10 @@ func Startup() (*StartupResult, error) {
 		return result, nil
 	}
 
-	if !environment.IsVersionCompatible(javaInfo.Version, minJavaMajor) {
+	if !environment.IsVersionCompatible(javaInfo.Version, MinJavaMajor) {
 		result.Warnings = append(result.Warnings,
 			fmt.Sprintf("Java %s encontrado, mas versão mínima exigida é %d",
-				javaInfo.Version, minJavaMajor))
+				javaInfo.Version, MinJavaMajor))
 		return result, nil
 	}
 
