@@ -10,6 +10,7 @@ import (
 	"github.com/GabrielFRails/assinatura/internal/storage"
 )
 
+var version = "dev"
 var rootCmd = &cobra.Command{
 	Use:   "assinatura",
 	Short: "CLI para operações de assinatura digital",
@@ -28,8 +29,18 @@ var statusCmd = &cobra.Command{
 	},
 }
 
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Exibe a versão do CLI",
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error { return nil },
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("assinatura %s\n", version)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(versionCmd)
 }
 
 func main() {
