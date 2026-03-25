@@ -1,23 +1,82 @@
 package main
 
 import (
-    "fmt"
-    "os"
+	"fmt"
+	"os"
 
-    "github.com/GabrielFRails/assinatura/internal/environment"
-    "github.com/GabrielFRails/assinatura/internal/storage"
+	"github.com/spf13/cobra"
+	"github.com/GabrielFRails/assinatura/internal/environment"
+	"github.com/GabrielFRails/assinatura/internal/runner"
+	"github.com/GabrielFRails/assinatura/internal/storage"
 )
 
-func main() {
-    if err := storage.EnsureHomeDir(); err != nil {
-        fmt.Fprintf(os.Stderr, "erro ao criar diretório: %v\n", err)
-        os.Exit(1)
-    }
+var rootCmd = &cobra.Command{
+	Use:   "assinatura",
+	Short: "CLI para operações de assinatura digital",
+	Long:  `Sistema Runner - CLI para criação e validação de assinaturas digitais via assinador.jar`,
 
-    javaInfo, err := environment.DetectJava()
-    if err != nil {
-        fmt.Println("Java não encontrado:", err)
-    } else {
-        fmt.Printf("Java encontrado: versão %s em %s\n", javaInfo.Version, javaInfo.Path)
-    }
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		return startup()
+	},
+}
+
+var statusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Exibe o status do ambiente",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runStatus()
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(statusCmd)
+}
+
+func main() {
+	defer storage.Close()
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func startup() error {
+	result, err := runner.Startup()
+	if err != nil {
+		return fmt.Errorf("falha na inicialização: %w", err)
+	}
+
+	for _, w := range result.Warnings {
+		fmt.Fprintf(os.Stderr, "aviso: %s\n", w)
+	}
+
+	return nil
+}
+
+func runStatus() error {
+	dir, err := storage.HomeDir()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Diretório de trabalho : %s\n", dir)
+	fmt.Printf("Sistema operacional   : %s\n", environment.CurrentOS())
+	fmt.Printf("Arquitetura           : %s\n", environment.CurrentArch())
+
+	javaInfo, err := environment.DetectJava()
+	if err != nil {
+		fmt.Printf("Java                  : não encontrado\n")
+		return nil
+	}
+
+	fmt.Printf("Java                  : %s\n", javaInfo.Version)
+	fmt.Printf("Java path             : %s\n", javaInfo.Path)
+
+	if environment.IsVersionCompatible(javaInfo.Version, 17) {
+		fmt.Printf("Java compatível       : sim (mínimo: 17)\n")
+	} else {
+		fmt.Printf("Java compatível       : não (mínimo: 17, encontrado: %s)\n", javaInfo.Version)
+	}
+
+	return nil
 }
