@@ -47,9 +47,20 @@ Exemplo para Linux:
 cosign verify-blob \
   --certificate assinatura-v1.0.0-linux-amd64.pem \
   --signature assinatura-v1.0.0-linux-amd64.sig \
-  --certificate-identity-regexp="https://github.com/kyriosdata/assinatura" \
+  --certificate-identity-regexp="https://github.com/GabrielFRails/java-runner" \
   --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
   assinatura-v1.0.0-linux-amd64
+```
+
+Exemplo macos:
+
+```bash
+cosign verify-blob \
+  --certificate assinatura-v0.1.3-darwin-arm64.pem \
+  --signature assinatura-v0.1.3-darwin-arm64.sig \
+  --certificate-identity-regexp="https://github.com/GabrielFRails/java-runner" \
+  --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+  assinatura-v0.1.3-darwin-arm64
 ```
 
 Se a verificação for bem-sucedida, o Cosign exibirá:
