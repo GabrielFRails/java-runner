@@ -1,4 +1,4 @@
-module github.com/GabrielFRails/assinatura
+module github.com/GabrielFRails/java-runner
 
 go 1.26.1
 
