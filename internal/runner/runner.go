@@ -3,8 +3,8 @@ package runner
 import (
 	"fmt"
 
-	"github.com/GabrielFRails/assinatura/internal/environment"
-	"github.com/GabrielFRails/assinatura/internal/storage"
+	"github.com/GabrielFRails/java-runner/internal/environment"
+	"github.com/GabrielFRails/java-runner/internal/storage"
 )
 
 const MinJavaMajor = 21
