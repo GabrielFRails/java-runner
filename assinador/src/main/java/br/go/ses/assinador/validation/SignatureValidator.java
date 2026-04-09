@@ -34,8 +34,7 @@ public class SignatureValidator {
         "^urn:uuid:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     );
 
-    @Value("${assinador.policy.supported-version}")
-    private String supportedPolicyVersion;
+    private String supportedPolicyVersion = "0.1.2";
 
     private final FhirContext fhirContext = FhirContext.forR4();
 

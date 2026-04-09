@@ -68,11 +68,11 @@ public class AssinadorCli {
     private static void runSign(String[] args) throws Exception {
         SignRequest request = new SignRequest();
 
-        for (int i = 1; i < args.length - 1; i++) {
+        for (int i = 1; i < args.length; i++) {
             switch (args[i]) {
                 case "--bundle"     -> request.setBundle(readFile(args[++i]));
                 case "--provenance" -> request.setProvenance(readFile(args[++i]));
-                case "--timestamp"  -> request.setReferenceTimestamp(Long.parseLong(args[++i]));
+                case "--timestamp" -> request.setReferenceTimestamp(Long.parseLong(args[++i]));
                 case "--strategy"   -> request.setStrategy(args[++i]);
                 case "--policy"     -> request.setPolicyUri(args[++i]);
                 case "--cert"       -> request.setCertificateChain(parseCertChain(args[++i]));
@@ -118,7 +118,7 @@ public class AssinadorCli {
     private static void runValidate(String[] args) throws Exception {
         ValidateRequest request = new ValidateRequest();
 
-        for (int i = 1; i < args.length - 1; i++) {
+        for (int i = 1; i < args.length; i++) {
             switch (args[i]) {
                 case "--signature"  -> request.setSignatureData(readFile(args[++i]));
                 case "--timestamp"  -> request.setReferenceTimestamp(Long.parseLong(args[++i]));
