@@ -316,11 +316,13 @@ para instruções de verificação.
 
 ### Sprint 2
 
+sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou avançado no projeto
+
 | requirement/task/US | status |
 |---|---|
 | Sprint 2 overall | TODO |
 | US-02.1 - Simulação de criação de assinatura digital | TODO |
-| Projeto Java base inicializado no diretório `projetos/assinador-java` | TODO |
+| Projeto Java base inicializado no diretório `projetos/assinador-java` | DONE |
 | Interface `SignatureService` definida com métodos `sign` e `validate` | DONE |
 | Implementação `FakeSignatureService` retorna assinatura pré-construída para parâmetros válidos | DONE |
 | Resposta simulada inclui os campos esperados conforme especificação | DONE |
