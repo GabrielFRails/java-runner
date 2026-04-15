@@ -302,8 +302,8 @@ para instruções de verificação.
 | Cross-compilation para `windows/amd64`, `linux/amd64` e `darwin/amd64` | DONE |
 | Build executado a cada push na branch principal | DONE |
 | Artefatos de build disponíveis como artifacts do workflow | DONE |
-| US-05.2 - Publicação de releases com versionamento semântico | TODO |
-| Tags de versão seguem SemVer | TODO |
+| US-05.2 - Publicação de releases com versionamento semântico | DONE |
+| Tags de versão seguem SemVer | DONE |
 | Workflow de release gera binários nomeados por plataforma | DONE |
 | Binários publicados automaticamente no GitHub Releases ao criar tag | DONE |
 | Nome dos artefatos segue `assinatura-<versão>-<os>-<arch>` | DONE |
