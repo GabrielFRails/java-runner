@@ -274,3 +274,79 @@ para instruções de verificação.
 - [Especificação FHIR — Validar Assinatura](https://fhir.saude.go.gov.br/r4/seguranca/caso-de-uso-validar-assinatura.html)
 - [Sigstore / Cosign](https://docs.sigstore.dev/cosign/overview/)
 - [HAPI FHIR](https://hapifhir.io/)
+
+## Status atual do projeto:
+
+### Sprint 1
+
+| requirement/task/US | status |
+|---|---|
+| Sprint 1 overall | TODO |
+| US-01.1 - Estrutura base do CLI em Go | TODO |
+| `go mod init github.com/kyriosdata/assinatura` | TODO |
+| Evidência de instalação/uso de `go install github.com/spf13/cobra-cli@latest` | TODO |
+| Estrutura de pacotes definida e documentada | DONE |
+| Aplicação compila e executa nas três plataformas (Windows, Linux, macOS) | DONE |
+| `assinatura version` exibe a versão atual do CLI | DONE |
+| US-05.1 - Pipeline CI/CD multiplataforma | DONE |
+| GitHub Actions configurado com workflow de build | DONE |
+| Cross-compilation para `windows/amd64`, `linux/amd64` e `darwin/amd64` | DONE |
+| Build executado a cada push na branch principal | DONE |
+| Artefatos de build disponíveis como artifacts do workflow | DONE |
+| US-05.2 - Publicação de releases com versionamento semântico | TODO |
+| Tags de versão seguem SemVer | TODO |
+| Workflow de release gera binários nomeados por plataforma | DONE |
+| Binários publicados automaticamente no GitHub Releases ao criar tag | DONE |
+| Nome dos artefatos segue `assinatura-<versão>-<os>-<arch>` | DONE |
+| US-05.3 - Checksums SHA256 e assinatura de artefatos com Cosign | DONE |
+| Cada release inclui arquivo de checksums SHA256 para todos os binários | DONE |
+| Artefatos assinados com Cosign (identidade OIDC + transparency log) | DONE |
+| Cada artefato acompanhado de `.sig` e `.pem` | DONE |
+| Processo de assinatura automatizado no pipeline CI/CD | DONE |
+| Documentação de como verificar artefatos com `cosign verify-blob` | DONE |
+
+### Sprint 2
+
+| requirement/task/US | status |
+|---|---|
+| Sprint 2 overall | TODO |
+| US-02.1 - Simulação de criação de assinatura digital | TODO |
+| Projeto Java base inicializado no diretório `projetos/assinador-java` | TODO |
+| Interface `SignatureService` definida com métodos `sign` e `validate` | DONE |
+| Implementação `FakeSignatureService` retorna assinatura pré-construída para parâmetros válidos | DONE |
+| Resposta simulada inclui os campos esperados conforme especificação | DONE |
+| Testes unitários cobrem o cenário de sucesso | DONE |
+| US-02.2 - Validação de parâmetros de criação de assinatura | TODO |
+| Todos os parâmetros obrigatórios são verificados (presença e formato) | DONE |
+| Mensagens de erro indicam qual parâmetro está inválido e o motivo | DONE |
+| Parâmetros inválidos são rejeitados antes de qualquer processamento | DONE |
+| Testes unitários cobrem todos os cenários de validação | TODO |
+| US-02.3 - Simulação e validação de parâmetros de validação de assinatura | TODO |
+| Parâmetros de validação são verificados (presença e formato) | DONE |
+| Resultado pré-determinado (válido/inválido) retornado baseado em critérios simples | TODO |
+| Mensagens de erro claras para parâmetros inválidos | DONE |
+| Testes unitários cobrem cenários de sucesso e falha | TODO |
+| US-01.2 - Parsing de comandos e parâmetros no CLI | TODO |
+| CLI aceita o comando `sign` com os parâmetros necessários | DONE |
+| CLI aceita o comando `validate` com os parâmetros necessários | DONE |
+| Mensagem de ajuda (`--help`) documenta os comandos e parâmetros disponíveis | DONE |
+| Parâmetros ausentes ou inválidos geram mensagem de erro orientativa | DONE |
+| Testes cobrem o parsing de comandos e parâmetros | TODO |
+| US-01.3 - Invocação do assinador.jar no modo local | TODO |
+| CLI localiza o `java` disponível (provisionado ou do sistema) | DONE |
+| CLI constrói e executa `java -jar assinador.jar` com parâmetros corretamente mapeados | DONE |
+| Saída do assinador.jar é capturada e repassada ao usuário | DONE |
+| Erros de execução são tratados com mensagens claras | DONE |
+| Testes de integração validam o fluxo CLI -> assinador.jar | TODO |
+| US-01.4 - Exibição legível de resultados | DONE |
+| Resultado de criação de assinatura é formatado de forma legível | DONE |
+| Resultado de validação de assinatura indica claramente se é válida ou inválida | DONE |
+| Erros são apresentados com mensagem descritiva e orientação para correção | DONE |
+| Saída é adequada para uso em terminal (não requer pós-processamento) | DONE |
+| US-04.1 - Detecção e provisionamento automático do JDK | TODO |
+| Sistema verifica se JDK 21 está disponível no `PATH` ou em diretório gerenciado (`~/.hubsaude/`) | TODO |
+| Se ausente, JDK é baixado automaticamente da distribuição adequada para a plataforma | TODO |
+| JDK baixado é armazenado em `~/.hubsaude/jdk/` para reuso | TODO |
+| Download não é repetido se JDK já estiver provisionado | TODO |
+| Testes cobrem detecção de JDK presente e ausente nas três plataformas | TODO |
+
