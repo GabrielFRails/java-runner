@@ -35,6 +35,7 @@ help:
 	@echo "  make clean      - remove artefatos locais de build"
 
 go-deps:
+	$(GO_CMD) install github.com/spf13/cobra-cli@latest
 	$(GO_CMD) get github.com/spf13/cobra
 	$(GO_CMD) get github.com/mattn/go-sqlite3
 	$(GO_CMD) mod tidy

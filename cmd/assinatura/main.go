@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/GabrielFRails/java-runner/internal/environment"
-	"github.com/GabrielFRails/java-runner/internal/jar"
-	"github.com/GabrielFRails/java-runner/internal/runner"
-	"github.com/GabrielFRails/java-runner/internal/storage"
+	"github.com/kyriosdata/assinatura/internal/environment"
+	"github.com/kyriosdata/assinatura/internal/jar"
+	"github.com/kyriosdata/assinatura/internal/runner"
+	"github.com/kyriosdata/assinatura/internal/storage"
 )
 
 var version = "dev"

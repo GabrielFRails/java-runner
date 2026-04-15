@@ -14,6 +14,11 @@ caso não esteja instalado, instalar para o usuário.
 ## bibliotecas go para instalar:
 
 ```bash
+go mod init github.com/kyriosdata/assinatura
+
+# Ferramenta de scaffold do Cobra
+go install github.com/spf13/cobra-cli@latest
+
 # CLI framework (equivalente ao cobra/click de outras linguagens)
 go get github.com/spf13/cobra
 
@@ -89,6 +94,10 @@ go build -o assinatura ./cmd/assinatura
 ```
 
 O binário `assinatura` será gerado na raiz do repositório.
+
+O projeto usa o módulo Go `github.com/kyriosdata/assinatura` e o comando
+`assinatura version` é exposto pela estrutura baseada em Cobra em
+`cmd/assinatura/main.go`.
 
 ---
 
@@ -282,9 +291,9 @@ para instruções de verificação.
 | requirement/task/US | status |
 |---|---|
 | Sprint 1 overall | TODO |
-| US-01.1 - Estrutura base do CLI em Go | TODO |
-| `go mod init github.com/kyriosdata/assinatura` | TODO |
-| Evidência de instalação/uso de `go install github.com/spf13/cobra-cli@latest` | TODO |
+| US-01.1 - Estrutura base do CLI em Go | DONE |
+| `go mod init github.com/kyriosdata/assinatura` | DONE |
+| Evidência de instalação/uso de `go install github.com/spf13/cobra-cli@latest` | DONE |
 | Estrutura de pacotes definida e documentada | DONE |
 | Aplicação compila e executa nas três plataformas (Windows, Linux, macOS) | DONE |
 | `assinatura version` exibe a versão atual do CLI | DONE |
@@ -349,4 +358,3 @@ para instruções de verificação.
 | JDK baixado é armazenado em `~/.hubsaude/jdk/` para reuso | TODO |
 | Download não é repetido se JDK já estiver provisionado | TODO |
 | Testes cobrem detecção de JDK presente e ausente nas três plataformas | TODO |
-
