@@ -16,13 +16,17 @@ var version = "dev"
 
 var signFlags jar.SignFlags
 var validateFlags jar.ValidateFlags
+var startupFn = startup
+var runSignFn = runSign
+var runValidateFn = runValidate
+var runStatusFn = runStatus
 
 var rootCmd = &cobra.Command{
 	Use:   "assinatura",
 	Short: "CLI para operações de assinatura digital",
 	Long:  `Sistema Runner - CLI para criação e validação de assinaturas digitais via assinador.jar`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return startup()
+		return startupFn()
 	},
 }
 
@@ -30,7 +34,7 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Exibe o status do ambiente",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runStatus()
+		return runStatusFn()
 	},
 }
 
@@ -59,8 +63,11 @@ O assinador.jar deve estar no mesmo diretório do executável assinatura.`,
 	--crypto-type PEM \
 	--crypto-pem key.pem \
 	--config config.json`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return validateSignFlags(signFlags)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSign()
+		return runSignFn()
 	},
 }
 
@@ -73,8 +80,11 @@ O assinador.jar deve estar no mesmo diretório do executável assinatura.`,
 	--signature signature.json \
 	--policy "https://fhir.saude.go.gov.br/r4/seguranca/ImplementationGuide/br.go.ses.seguranca|0.1.2" \
 	--config config.json`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return validateValidateFlags(validateFlags)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runValidate()
+		return runValidateFn()
 	},
 }
 
@@ -122,6 +132,69 @@ func startup() error {
 	for _, w := range result.Warnings {
 		fmt.Fprintf(os.Stderr, "aviso: %s\n", w)
 	}
+	return nil
+}
+
+func validateSignFlags(flags jar.SignFlags) error {
+	missing := []string{}
+
+	if flags.Bundle == "" {
+		missing = append(missing, "--bundle")
+	}
+	if flags.Provenance == "" {
+		missing = append(missing, "--provenance")
+	}
+	if flags.PolicyUri == "" {
+		missing = append(missing, "--policy")
+	}
+	if flags.CertChain == "" {
+		missing = append(missing, "--cert")
+	}
+	if flags.Config == "" {
+		missing = append(missing, "--config")
+	}
+
+	switch flags.CryptoType {
+	case "", "PEM":
+		if flags.CryptoPem == "" {
+			missing = append(missing, "--crypto-pem")
+		}
+	case "PKCS12":
+		if flags.CryptoPkcs12 == "" {
+			missing = append(missing, "--crypto-pkcs12")
+		}
+		if flags.CryptoPassword == "" {
+			missing = append(missing, "--crypto-password")
+		}
+		if flags.CryptoAlias == "" {
+			missing = append(missing, "--crypto-alias")
+		}
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("parâmetros obrigatórios ausentes: %v", missing)
+	}
+
+	return nil
+}
+
+func validateValidateFlags(flags jar.ValidateFlags) error {
+	missing := []string{}
+
+	if flags.Signature == "" {
+		missing = append(missing, "--signature")
+	}
+	if flags.PolicyUri == "" {
+		missing = append(missing, "--policy")
+	}
+	if flags.Config == "" {
+		missing = append(missing, "--config")
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("parâmetros obrigatórios ausentes: %v", missing)
+	}
+
 	return nil
 }
 
