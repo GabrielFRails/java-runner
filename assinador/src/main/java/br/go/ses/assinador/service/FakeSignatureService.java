@@ -4,6 +4,9 @@ import br.go.ses.assinador.model.SignRequest;
 import br.go.ses.assinador.model.ValidateRequest;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 /**
  * Implementação simulada do {@link SignatureService}.
  *
@@ -49,28 +52,43 @@ public class FakeSignatureService implements SignatureService {
     }
 
     /**
-     * Retorna resultado de validação simulado (sempre sucesso).
+     * Retorna resultado de validação simulado baseado em critério simples.
      * Em um sistema real, aqui ocorreriam as 7 etapas de validação JAdES.
      */
     @Override
     public String validate(ValidateRequest request) {
-        // Em produção: executaria as 7 etapas de validação
-        // Aqui: retorna sucesso simulado
+        // Em produção: executaria as 7 etapas de validação.
+        // Aqui: a assinatura é considerada inválida quando o conteúdo decodificado
+        // contém a palavra INVALID; nos demais casos, retorna sucesso.
+        String decoded = new String(
+            Base64.getDecoder().decode(request.getSignatureData()),
+            StandardCharsets.UTF_8
+        );
+        boolean valid = !decoded.toUpperCase().contains("INVALID");
+
         return """
             {
               "resourceType": "OperationOutcome",
               "issue": [{
-                "severity": "information",
-                "code": "informational",
+                "severity": "%s",
+                "code": "%s",
                 "details": {
                   "coding": [{
                     "system": "%s",
-                    "code": "VALIDATION.SUCCESS"
+                    "code": "%s"
                   }]
                 },
-                "diagnostics": "Assinatura digital validada com sucesso (simulação)"
+                "diagnostics": "%s"
               }]
             }
-            """.formatted(CODESYSTEM);
+            """.formatted(
+                valid ? "information" : "error",
+                valid ? "informational" : "invalid",
+                CODESYSTEM,
+                valid ? "VALIDATION.SUCCESS" : "VALIDATION.FAILURE",
+                valid
+                    ? "Assinatura digital validada com sucesso (simulação)"
+                    : "Assinatura digital inválida conforme critério simples da simulação"
+            );
     }
 }

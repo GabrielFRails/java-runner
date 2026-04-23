@@ -10,6 +10,9 @@ import static org.assertj.core.api.Assertions.*;
 
 class FakeSignatureServiceTest {
 
+    private static final String SIGNATURE_VALIDA = "U0lNVUxBVEVEX1NJR05BVFVSRQ==";
+    private static final String SIGNATURE_INVALIDA = "SU5WQUxJRF9TSUdOQVRVUkU=";
+
     private FakeSignatureService service;
 
     @BeforeEach
@@ -42,7 +45,10 @@ class FakeSignatureServiceTest {
     @Test
     @DisplayName("validate deve retornar OperationOutcome com VALIDATION.SUCCESS")
     void validateDeveRetornarSucesso() {
-        String resultado = service.validate(new ValidateRequest());
+        var request = new ValidateRequest();
+        request.setSignatureData(SIGNATURE_VALIDA);
+
+        String resultado = service.validate(request);
         assertThat(resultado).contains("\"resourceType\": \"OperationOutcome\"");
         assertThat(resultado).contains("VALIDATION.SUCCESS");
     }
@@ -50,7 +56,22 @@ class FakeSignatureServiceTest {
     @Test
     @DisplayName("validate deve retornar severity information")
     void validateDeveRetornarSeverityInformation() {
-        String resultado = service.validate(new ValidateRequest());
+        var request = new ValidateRequest();
+        request.setSignatureData(SIGNATURE_VALIDA);
+
+        String resultado = service.validate(request);
         assertThat(resultado).contains("\"severity\": \"information\"");
+    }
+
+    @Test
+    @DisplayName("validate deve retornar VALIDATION.FAILURE para assinatura inválida")
+    void validateDeveRetornarFalha() {
+        var request = new ValidateRequest();
+        request.setSignatureData(SIGNATURE_INVALIDA);
+
+        String resultado = service.validate(request);
+
+        assertThat(resultado).contains("VALIDATION.FAILURE");
+        assertThat(resultado).contains("\"severity\": \"error\"");
     }
 }
