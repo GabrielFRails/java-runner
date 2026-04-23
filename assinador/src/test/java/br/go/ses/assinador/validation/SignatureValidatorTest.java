@@ -217,6 +217,135 @@ class SignatureValidatorTest {
     }
 
     // -------------------------------------------------------------------------
+    // Bundle
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Validação de Bundle")
+    class BundleTests {
+
+        @Test
+        @DisplayName("Deve lançar FORMAT.BUNDLE-MALFORMED quando bundle está ausente")
+        void deveRejeitarBundleAusente() {
+            var ex = catchThrowableOfType(
+                () -> validator.validateBundle(null, configPadrao()),
+                ValidationException.class
+            );
+
+            assertThat(ex.getFhirCode()).isEqualTo("FORMAT.BUNDLE-MALFORMED");
+        }
+
+        @Test
+        @DisplayName("Deve lançar FORMAT.BUNDLE-EMPTY quando bundle não possui entries")
+        void deveRejeitarBundleSemEntries() {
+            String bundleSemEntries = """
+                {
+                  "resourceType": "Bundle",
+                  "type": "collection",
+                  "entry": []
+                }
+                """;
+
+            var ex = catchThrowableOfType(
+                () -> validator.validateBundle(bundleSemEntries, configPadrao()),
+                ValidationException.class
+            );
+
+            assertThat(ex.getFhirCode()).isEqualTo("FORMAT.BUNDLE-EMPTY");
+        }
+
+        @Test
+        @DisplayName("Deve aceitar bundle válido")
+        void deveAceitarBundleValido() {
+            assertThatNoException()
+                .isThrownBy(() -> validator.validateBundle(BUNDLE_VALIDO, configPadrao()));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Provenance
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Validação de Provenance")
+    class ProvenanceTests {
+
+        @Test
+        @DisplayName("Deve lançar FORMAT.PROVENANCE-INVALID quando provenance está ausente")
+        void deveRejeitarProvenanceAusente() {
+            var ex = catchThrowableOfType(
+                () -> validator.validateProvenance(null, configPadrao()),
+                ValidationException.class
+            );
+
+            assertThat(ex.getFhirCode()).isEqualTo("FORMAT.PROVENANCE-INVALID");
+        }
+
+        @Test
+        @DisplayName("Deve lançar FORMAT.PROVENANCE-INVALID quando target está ausente")
+        void deveRejeitarProvenanceSemTarget() {
+            String provenanceSemTarget = """
+                {
+                  "resourceType": "Provenance",
+                  "target": []
+                }
+                """;
+
+            var ex = catchThrowableOfType(
+                () -> validator.validateProvenance(provenanceSemTarget, configPadrao()),
+                ValidationException.class
+            );
+
+            assertThat(ex.getFhirCode()).isEqualTo("FORMAT.PROVENANCE-INVALID");
+        }
+
+        @Test
+        @DisplayName("Deve aceitar provenance válido")
+        void deveAceitarProvenanceValido() {
+            assertThatNoException()
+                .isThrownBy(() -> validator.validateProvenance(PROVENANCE_VALIDO, configPadrao()));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Cruzamento Bundle x Provenance
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Validação cruzada de Bundle e Provenance")
+    class BundleProvenanceCrossTests {
+
+        @Test
+        @DisplayName("Deve lançar FORMAT.TARGET-REFERENCE-MISSING quando target não existe no bundle")
+        void deveRejeitarTargetAusenteNoBundle() {
+            String provenanceComTargetInexistente = """
+                {
+                  "resourceType": "Provenance",
+                  "target": [{
+                    "reference": "urn:uuid:11111111-1111-1111-1111-111111111111"
+                  }],
+                  "recorded": "2025-01-01T00:00:00Z",
+                  "agent": [{"who": {"reference": "Practitioner/1"}}]
+                }
+                """;
+
+            var ex = catchThrowableOfType(
+                () -> validator.validateBundleProvenanceCross(BUNDLE_VALIDO, provenanceComTargetInexistente),
+                ValidationException.class
+            );
+
+            assertThat(ex.getFhirCode()).isEqualTo("FORMAT.TARGET-REFERENCE-MISSING");
+        }
+
+        @Test
+        @DisplayName("Deve aceitar bundle e provenance compatíveis")
+        void deveAceitarBundleEProvenanceCompativeis() {
+            assertThatNoException()
+                .isThrownBy(() -> validator.validateBundleProvenanceCross(BUNDLE_VALIDO, PROVENANCE_VALIDO));
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Cadeia de certificados
     // -------------------------------------------------------------------------
 
@@ -359,6 +488,103 @@ class SignatureValidatorTest {
     }
 
     // -------------------------------------------------------------------------
+    // ValidateRequest
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Validação de ValidateRequest")
+    class ValidateRequestTests {
+
+        @Test
+        @DisplayName("Deve lançar FORMAT.JWS-MALFORMED quando signatureData está ausente")
+        void deveRejeitarSignatureAusente() {
+            var request = validateRequestPadrao();
+            request.setSignatureData(null);
+
+            var ex = catchThrowableOfType(
+                () -> validator.validateValidateRequest(request),
+                ValidationException.class
+            );
+
+            assertThat(ex.getFhirCode()).isEqualTo("FORMAT.JWS-MALFORMED");
+        }
+
+        @Test
+        @DisplayName("Deve lançar FORMAT.BASE64-INVALID quando signatureData não é base64")
+        void deveRejeitarSignatureBase64Invalida() {
+            var request = validateRequestPadrao();
+            request.setSignatureData("não-base64");
+
+            var ex = catchThrowableOfType(
+                () -> validator.validateValidateRequest(request),
+                ValidationException.class
+            );
+
+            assertThat(ex.getFhirCode()).isEqualTo("FORMAT.BASE64-INVALID");
+        }
+
+        @Test
+        @DisplayName("Deve aceitar ValidateRequest com assinatura base64 válida")
+        void deveAceitarValidateRequestValido() {
+            assertThatNoException()
+                .isThrownBy(() -> validator.validateValidateRequest(validateRequestPadrao()));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // SignRequest
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Validação de SignRequest")
+    class SignRequestTests {
+
+        @Test
+        @DisplayName("Deve aceitar SignRequest completo e válido")
+        void deveAceitarSignRequestValido() {
+            assertThatNoException()
+                .isThrownBy(() -> validator.validateSignRequest(signRequestPadrao()));
+        }
+
+        @Test
+        @DisplayName("Deve rejeitar SignRequest com policy ausente")
+        void deveRejeitarSignRequestComPolicyAusente() {
+            var request = signRequestPadrao();
+            request.setPolicyUri(null);
+
+            var ex = catchThrowableOfType(
+                () -> validator.validateSignRequest(request),
+                ValidationException.class
+            );
+
+            assertThat(ex.getFhirCode()).isEqualTo("POLICY.MISSING");
+        }
+
+        @Test
+        @DisplayName("Deve rejeitar SignRequest com provenance incompatível com o bundle")
+        void deveRejeitarSignRequestComProvenanceIncompativel() {
+            var request = signRequestPadrao();
+            request.setProvenance("""
+                {
+                  "resourceType": "Provenance",
+                  "target": [{
+                    "reference": "urn:uuid:11111111-1111-1111-1111-111111111111"
+                  }],
+                  "recorded": "2025-01-01T00:00:00Z",
+                  "agent": [{"who": {"reference": "Practitioner/1"}}]
+                }
+                """);
+
+            var ex = catchThrowableOfType(
+                () -> validator.validateSignRequest(request),
+                ValidationException.class
+            );
+
+            assertThat(ex.getFhirCode()).isEqualTo("FORMAT.TARGET-REFERENCE-MISSING");
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
@@ -376,5 +602,36 @@ class SignatureValidatorTest {
         config.setMaxBundleSize(52_428_800);
         config.setTimeoutVerificationBundle(10);
         return config;
+    }
+
+    private ValidateRequest validateRequestPadrao() {
+        var request = new ValidateRequest();
+        request.setSignatureData(Base64.getEncoder().encodeToString("SIMULATED_SIGNATURE".getBytes()));
+        request.setReferenceTimestamp(System.currentTimeMillis() / 1000);
+        request.setPolicyUri(
+            "https://fhir.saude.go.gov.br/r4/seguranca/ImplementationGuide/br.go.ses.seguranca|0.1.2"
+        );
+        request.setConfig(configPadrao());
+        return request;
+    }
+
+    private SignRequest signRequestPadrao() {
+        var request = new SignRequest();
+        request.setBundle(BUNDLE_VALIDO);
+        request.setProvenance(PROVENANCE_VALIDO);
+        request.setReferenceTimestamp(System.currentTimeMillis() / 1000);
+        request.setStrategy("iat");
+        request.setPolicyUri(
+            "https://fhir.saude.go.gov.br/r4/seguranca/ImplementationGuide/br.go.ses.seguranca|0.1.2"
+        );
+        request.setCertificateChain(List.of(CERT_BASE64_VALIDO, CERT_BASE64_VALIDO));
+
+        var crypto = new CryptoMaterial();
+        crypto.setType(CryptoMaterial.Type.PEM);
+        crypto.setPrivateKeyPem("-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----");
+        request.setCryptoMaterial(crypto);
+        request.setConfig(configPadrao());
+
+        return request;
     }
 }
