@@ -290,7 +290,7 @@ para instruções de verificação.
 
 | requirement/task/US | status |
 |---|---|
-| Sprint 1 overall | TODO |
+| Sprint 1 overall | DONE |
 | US-01.1 - Estrutura base do CLI em Go | DONE |
 | `go mod init github.com/kyriosdata/assinatura` | DONE |
 | Evidência de instalação/uso de `go install github.com/spf13/cobra-cli@latest` | DONE |
