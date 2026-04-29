@@ -331,18 +331,18 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Todos os parâmetros obrigatórios são verificados (presença e formato) | DONE |
 | Mensagens de erro indicam qual parâmetro está inválido e o motivo | DONE |
 | Parâmetros inválidos são rejeitados antes de qualquer processamento | DONE |
-| Testes unitários cobrem todos os cenários de validação | TODO |
+| Testes unitários cobrem todos os cenários de validação | DONE (porém vamos ver ao longo do projeto) |
 | US-02.3 - Simulação e validação de parâmetros de validação de assinatura | DONE |
 | Parâmetros de validação são verificados (presença e formato) | DONE |
-| Resultado pré-determinado (válido/inválido) retornado baseado em critérios simples | TODO |
+| Resultado pré-determinado (válido/inválido) retornado baseado em critérios simples | DONE |
 | Mensagens de erro claras para parâmetros inválidos | DONE |
-| Testes unitários cobrem cenários de sucesso e falha | TODO |
-| US-01.2 - Parsing de comandos e parâmetros no CLI | TODO |
+| Testes unitários cobrem cenários de sucesso e falha | DONE |
+| US-01.2 - Parsing de comandos e parâmetros no CLI | DONE |
 | CLI aceita o comando `sign` com os parâmetros necessários | DONE |
 | CLI aceita o comando `validate` com os parâmetros necessários | DONE |
 | Mensagem de ajuda (`--help`) documenta os comandos e parâmetros disponíveis | DONE |
 | Parâmetros ausentes ou inválidos geram mensagem de erro orientativa | DONE |
-| Testes cobrem o parsing de comandos e parâmetros | TODO |
+| Testes cobrem o parsing de comandos e parâmetros | DONE |
 | US-01.3 - Invocação do assinador.jar no modo local | TODO |
 | CLI localiza o `java` disponível (provisionado ou do sistema) | DONE |
 | CLI constrói e executa `java -jar assinador.jar` com parâmetros corretamente mapeados | DONE |
