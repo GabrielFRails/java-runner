@@ -46,7 +46,7 @@ public class FakeSignatureService implements SignatureService {
               },
               "sigFormat": "application/jose",
               "targetFormat": "application/octet-stream",
-              "data": "SIMULATED_SIGNATURE_BASE64_eyJhbGciOiJSUzI1NiIsIng1YyI6W10sInNpZ1BJZCI6eyJpZCI6InNpbXVsYWRvIn19.U0lNVUxBVEVE.U0lNVUxBVEVE"
+              "data": "U0lNVUxBVEVEX1NJR05BVFVSRQ=="
             }
             """;
     }

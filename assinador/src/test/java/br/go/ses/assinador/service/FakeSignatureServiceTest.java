@@ -32,7 +32,7 @@ class FakeSignatureServiceTest {
     void signDeveRetornarDataPreenchido() {
         String resultado = service.sign(new SignRequest());
         assertThat(resultado).contains("\"data\":");
-        assertThat(resultado).contains("SIMULATED_SIGNATURE");
+        assertThat(resultado).contains("U0lNVUxBVEVEX1NJR05BVFVSRQ==");
     }
 
     @Test
