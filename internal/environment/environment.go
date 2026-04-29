@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 )
 
@@ -14,6 +16,8 @@ type JavaInfo struct {
 	Version string
 	Source  string
 }
+
+var homeDirFn = os.UserHomeDir
 
 func javaExecutable() string {
 	if runtime.GOOS == "windows" {
@@ -32,7 +36,52 @@ func javaHomeExecutable(javaHome string) string {
 	return javaHome + "/bin/" + javaExecutable()
 }
 
+func managedJDKExecutable() (string, error) {
+	home, err := homeDirFn()
+	if err != nil {
+		return "", fmt.Errorf("não foi possível determinar o diretório home: %w", err)
+	}
+
+	managedRoot := filepath.Join(home, ".hubsaude", "jdk")
+	entries, err := os.ReadDir(managedRoot)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", os.ErrNotExist
+		}
+		return "", fmt.Errorf("não foi possível listar JDKs gerenciados: %w", err)
+	}
+
+	var candidates []string
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		candidate := javaHomeExecutable(filepath.Join(managedRoot, entry.Name()))
+		if _, err := os.Stat(candidate); err == nil {
+			candidates = append(candidates, candidate)
+		}
+	}
+
+	if len(candidates) == 0 {
+		return "", os.ErrNotExist
+	}
+
+	sort.Strings(candidates)
+	return candidates[len(candidates)-1], nil
+}
+
 func DetectJava() (*JavaInfo, error) {
+	if path, err := managedJDKExecutable(); err == nil {
+		version, versionErr := getJavaVersion(path)
+		if versionErr == nil {
+			return &JavaInfo{
+				Path:    path,
+				Version: version,
+				Source:  "downloaded",
+			}, nil
+		}
+	}
 
 	javaHome := os.Getenv("JAVA_HOME")
 	if javaHome != "" {
