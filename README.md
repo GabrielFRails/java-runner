@@ -321,18 +321,18 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | requirement/task/US | status |
 |---|---|
 | Sprint 2 overall | TODO |
-| US-02.1 - Simulação de criação de assinatura digital | TODO |
+| US-02.1 - Simulação de criação de assinatura digital | DONE |
 | Projeto Java base inicializado no diretório `projetos/assinador-java` | DONE |
 | Interface `SignatureService` definida com métodos `sign` e `validate` | DONE |
 | Implementação `FakeSignatureService` retorna assinatura pré-construída para parâmetros válidos | DONE |
 | Resposta simulada inclui os campos esperados conforme especificação | DONE |
 | Testes unitários cobrem o cenário de sucesso | DONE |
-| US-02.2 - Validação de parâmetros de criação de assinatura | TODO |
+| US-02.2 - Validação de parâmetros de criação de assinatura | DONE |
 | Todos os parâmetros obrigatórios são verificados (presença e formato) | DONE |
 | Mensagens de erro indicam qual parâmetro está inválido e o motivo | DONE |
 | Parâmetros inválidos são rejeitados antes de qualquer processamento | DONE |
 | Testes unitários cobrem todos os cenários de validação | TODO |
-| US-02.3 - Simulação e validação de parâmetros de validação de assinatura | TODO |
+| US-02.3 - Simulação e validação de parâmetros de validação de assinatura | DONE |
 | Parâmetros de validação são verificados (presença e formato) | DONE |
 | Resultado pré-determinado (válido/inválido) retornado baseado em critérios simples | TODO |
 | Mensagens de erro claras para parâmetros inválidos | DONE |
