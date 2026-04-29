@@ -113,6 +113,23 @@ cp assinador/target/assinador-0.1.0.jar ./assinador.jar
 Na primeira execução de qualquer comando, o CLI cria automaticamente o
 diretório `~/.hubsaude` com o banco de dados local de estado.
 
+### Teste de integração local
+
+Para validar a `US-01.3` com um fluxo repetível de integração local, use:
+
+```bash
+make test-integration-local
+```
+
+Esse alvo verifica três cenários simples:
+
+- `sign` via CLI com sucesso
+- `validate` via CLI com sucesso
+- erro claro quando `assinador.jar` não está disponível
+
+O comando faz build do CLI, empacota o `assinador.jar`, gera arquivos de teste
+em `/tmp` e executa o fluxo local `CLI -> java -jar -> assinador.jar`.
+
 ---
 
 ## Comandos disponíveis

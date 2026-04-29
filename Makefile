@@ -15,7 +15,7 @@ TMP_KEY := /tmp/key.pem
 SIGN_POLICY := https://fhir.saude.go.gov.br/r4/seguranca/ImplementationGuide/br.go.ses.seguranca|0.1.2
 TEST_CERT_BASE64 := MIIDEzCCAfugAwIBAgIUIpafd10rpjmI4ug26Rzbv55qFp4wDQYJKoZIhvcNAQELBQAwGTEXMBUGA1UEAwwOQXNzaW5hZG9yIFRlc3QwHhcNMjYwNDAyMDEzMTQyWhcNMjYwNDAzMDEzMTQyWjAZMRcwFQYDVQQDDA5Bc3NpbmFkb3IgVGVzdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJpCscpAJ8WS2EmQmLUZeFQzDPUxEgx+rHNRGdNzsSPGSX+U/PBbI1qJIZI0m3J8jCGmCyVoPZpmsMEQBy7v4pA+KqDdQYXsNZJbwCZWNDCycJp5qoOH4TbhrLcjli+eAwd41eLwMgriLkw2DiOykaP1C9L1n4VlAPMNBsUV7I3ZcwIDjvZ78veu/MKobmVzyp/DlRZ5FtXzBADaQl4TiZfsUUBTp+F4//Ew5FNBii5Ti6iA3lktnsH5G1pKDzvQDe6gr2a4zSXUpq7aBMR8fbeHpcJFtV2GeHJrhHVNZzqgW0X1VjuP0oBmr+nJU0GfHqHcSVScs8+ZHzum/CvuGnECAwEAAaNTMFEwHQYDVR0OBBYEFJWuXTtR46jX7IQZLMkFOZSDao78MB8GA1UdIwQYMBaAFJWuXTtR46jX7IQZLMkFOZSDao78MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBABm134KBnybk7z5wkwZCKW273brHVAq459Npq8x603mbHvssJQNXpUFjU1tEB9vxqvbYroElPoxUPSWFLIOPF9+nx23q+juQiTAYr4IvyEs3UD75WWjRoHZQv5s1GMhvmZ4Ed/l8Nh9tNM6+qQyyfs2nhIKBjEfIJcQIA77hemfslBT/P8UADHL5onZXhOhdCswS9RdamKPZ4zYwTFClCfOO8wiFZ6jTw73dpF1A1J87Kg9gUUP0ilIkhG/867BJxJWHqFT6wAGcMeM7yKQZAvvr4GGqWsMett03zbpkiITIVWDJbt/kpjpoA00t2J+6vR0EZKJnEvTxEZwzfQBM0eA=
 
-.PHONY: help go-deps go-build go-test java-test java-build java-run sync-jar sample-files sample-sign build test clean version status xtudao
+.PHONY: help go-deps go-build go-test java-test java-build java-run sync-jar sample-files sample-sign build test clean version status xtudao test-integration-local
 
 help:
 	@echo "Alvos disponíveis:"
@@ -30,6 +30,7 @@ help:
 	@echo "  make sample-sign  - executa o exemplo completo de assinatura pela CLI"
 	@echo "  make build      - build completo: Java + Go + cópia do jar"
 	@echo "  make test       - executa testes Java e Go"
+	@echo "  make test-integration-local - valida o fluxo CLI -> java -jar -> assinador.jar"
 	@echo "  make xtudao     - build, testes, API no ar e fluxo completo via CLI e HTTP"
 	@echo "  make version    - executa ./assinatura version"
 	@echo "  make status     - executa ./assinatura status"
@@ -93,6 +94,9 @@ sample-sign: build sample-files
 build: java-build go-build sync-jar
 
 test: java-test go-test
+
+test-integration-local: build sample-files
+	zsh scripts/test-integration-local.sh
 
 xtudao: build test sample-files
 	zsh scripts/xtudao.sh
