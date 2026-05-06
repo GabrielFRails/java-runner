@@ -24,6 +24,8 @@ type JavaInfo struct {
 
 var homeDirFn = os.UserHomeDir
 var httpClient = http.DefaultClient
+var lookPathFn = exec.LookPath
+var getJavaVersionFn = getJavaVersion
 
 const (
 	managedJDKVendor  = "temurin"
@@ -168,8 +170,8 @@ func latestJDKDownloadURL() (string, error) {
 
 func EnsureManagedJDK() (*JavaInfo, error) {
 	if path, err := managedJDKExecutable(); err == nil {
-		version, versionErr := getJavaVersion(path)
-		if versionErr == nil {
+		version, versionErr := getJavaVersionFn(path)
+		if versionErr == nil && IsVersionCompatible(version, managedJDKVersion) {
 			return &JavaInfo{Path: path, Version: version, Source: "downloaded"}, nil
 		}
 	}
@@ -203,9 +205,12 @@ func EnsureManagedJDK() (*JavaInfo, error) {
 	}
 
 	javaPath := javaHomeExecutable(installDir)
-	version, err := getJavaVersion(javaPath)
+	version, err := getJavaVersionFn(javaPath)
 	if err != nil {
 		return nil, fmt.Errorf("JDK provisionado, mas inválido: %w", err)
+	}
+	if !IsVersionCompatible(version, managedJDKVersion) {
+		return nil, fmt.Errorf("JDK provisionado, mas incompatível: %s", version)
 	}
 
 	return &JavaInfo{
@@ -376,8 +381,8 @@ func extractTarGz(archivePath, dest string) error {
 
 func DetectJava() (*JavaInfo, error) {
 	if path, err := managedJDKExecutable(); err == nil {
-		version, versionErr := getJavaVersion(path)
-		if versionErr == nil {
+		version, versionErr := getJavaVersionFn(path)
+		if versionErr == nil && IsVersionCompatible(version, managedJDKVersion) {
 			return &JavaInfo{
 				Path:    path,
 				Version: version,
@@ -389,8 +394,8 @@ func DetectJava() (*JavaInfo, error) {
 	javaHome := os.Getenv("JAVA_HOME")
 	if javaHome != "" {
 		path := javaHomeExecutable(javaHome)
-		version, err := getJavaVersion(path)
-		if err == nil {
+		version, err := getJavaVersionFn(path)
+		if err == nil && IsVersionCompatible(version, managedJDKVersion) {
 			return &JavaInfo{
 				Path:    path,
 				Version: version,
@@ -399,10 +404,10 @@ func DetectJava() (*JavaInfo, error) {
 		}
 	}
 
-	path, err := exec.LookPath(javaExecutable())
+	path, err := lookPathFn(javaExecutable())
 	if err == nil {
-		version, versionErr := getJavaVersion(path)
-		if versionErr == nil {
+		version, versionErr := getJavaVersionFn(path)
+		if versionErr == nil && IsVersionCompatible(version, managedJDKVersion) {
 			return &JavaInfo{
 				Path:    path,
 				Version: version,
