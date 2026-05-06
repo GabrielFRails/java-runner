@@ -57,6 +57,56 @@ func TestManagedJDKExecutableReturnsNotExistWhenMissing(t *testing.T) {
 	}
 }
 
+func TestAdoptiumOSMappings(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]string{
+		"darwin":  "mac",
+		"linux":   "linux",
+		"windows": "windows",
+	}
+
+	for input, want := range cases {
+		got, err := adoptiumOS(input)
+		if err != nil {
+			t.Fatalf("unexpected error for %s: %v", input, err)
+		}
+		if got != want {
+			t.Fatalf("expected %s -> %s, got %s", input, want, got)
+		}
+	}
+}
+
+func TestAdoptiumArchMappings(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]string{
+		"amd64": "x64",
+		"arm64": "aarch64",
+	}
+
+	for input, want := range cases {
+		got, err := adoptiumArch(input)
+		if err != nil {
+			t.Fatalf("unexpected error for %s: %v", input, err)
+		}
+		if got != want {
+			t.Fatalf("expected %s -> %s, got %s", input, want, got)
+		}
+	}
+}
+
+func TestArchiveExtensionMatchesPlatform(t *testing.T) {
+	t.Parallel()
+
+	if got := archiveExtension("windows"); got != "zip" {
+		t.Fatalf("expected windows archive extension zip, got %s", got)
+	}
+	if got := archiveExtension("darwin"); got != "tar.gz" {
+		t.Fatalf("expected darwin archive extension tar.gz, got %s", got)
+	}
+}
+
 func TestJavaHomeExecutableSupportsMacBundleLayout(t *testing.T) {
 	t.Parallel()
 
