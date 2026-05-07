@@ -360,20 +360,20 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Mensagem de ajuda (`--help`) documenta os comandos e parâmetros disponíveis | DONE |
 | Parâmetros ausentes ou inválidos geram mensagem de erro orientativa | DONE |
 | Testes cobrem o parsing de comandos e parâmetros | DONE |
-| US-01.3 - Invocação do assinador.jar no modo local | TODO |
+| US-01.3 - Invocação do assinador.jar no modo local | DONE |
 | CLI localiza o `java` disponível (provisionado ou do sistema) | DONE |
 | CLI constrói e executa `java -jar assinador.jar` com parâmetros corretamente mapeados | DONE |
 | Saída do assinador.jar é capturada e repassada ao usuário | DONE |
 | Erros de execução são tratados com mensagens claras | DONE |
-| Testes de integração validam o fluxo CLI -> assinador.jar | TODO |
+| Testes de integração validam o fluxo CLI -> assinador.jar | DONE |
 | US-01.4 - Exibição legível de resultados | DONE |
 | Resultado de criação de assinatura é formatado de forma legível | DONE |
 | Resultado de validação de assinatura indica claramente se é válida ou inválida | DONE |
 | Erros são apresentados com mensagem descritiva e orientação para correção | DONE |
 | Saída é adequada para uso em terminal (não requer pós-processamento) | DONE |
 | US-04.1 - Detecção e provisionamento automático do JDK | TODO |
-| Sistema verifica se JDK 21 está disponível no `PATH` ou em diretório gerenciado (`~/.hubsaude/`) | TODO |
-| Se ausente, JDK é baixado automaticamente da distribuição adequada para a plataforma | TODO |
-| JDK baixado é armazenado em `~/.hubsaude/jdk/` para reuso | TODO |
-| Download não é repetido se JDK já estiver provisionado | TODO |
+| Sistema verifica se JDK 21 está disponível no `PATH` ou em diretório gerenciado (`~/.hubsaude/`) | DONE |
+| Se ausente, JDK é baixado automaticamente da distribuição adequada para a plataforma | DONE |
+| JDK baixado é armazenado em `~/.hubsaude/jdk/` para reuso | DONE |
+| Download não é repetido se JDK já estiver provisionado | DONE |
 | Testes cobrem detecção de JDK presente e ausente nas três plataformas | TODO |
