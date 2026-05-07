@@ -22,6 +22,7 @@ type StartResult struct {
 	PID     int
 	Port    int
 	LogPath string
+	Reused  bool
 }
 
 func Start(javaPath, jarPath string, port int) (*StartResult, error) {
@@ -38,6 +39,31 @@ func Start(javaPath, jarPath string, port int) (*StartResult, error) {
 	}
 
 	logPath := filepath.Join(home, "assinador-server.log")
+
+	existing, err := storage.GetProcess(AssinadorProcessName)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil && existing.Status == "running" {
+		if isHealthy(existing.Port) {
+			return &StartResult{
+				PID:     existing.PID,
+				Port:    existing.Port,
+				LogPath: logPath,
+				Reused:  true,
+			}, nil
+		}
+
+		if err := storage.SaveProcess(storage.Process{
+			Name:   AssinadorProcessName,
+			PID:    existing.PID,
+			Port:   existing.Port,
+			Status: "stopped",
+		}); err != nil {
+			return nil, err
+		}
+	}
+
 	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return nil, fmt.Errorf("não foi possível abrir log do servidor: %w", err)
@@ -82,6 +108,33 @@ func Start(javaPath, jarPath string, port int) (*StartResult, error) {
 	}
 
 	return result, nil
+}
+
+func IsHealthy(port int) bool {
+	return isHealthy(port)
+}
+
+func isHealthy(port int) bool {
+	if port <= 0 || port > 65535 {
+		return false
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	url := fmt.Sprintf("http://127.0.0.1:%d/health", port)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return false
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode == http.StatusOK
 }
 
 func waitForHealth(port int, timeout time.Duration) error {

@@ -9,3 +9,11 @@ func TestStartRejectsInvalidPort(t *testing.T) {
 		t.Fatal("expected error for invalid port")
 	}
 }
+
+func TestIsHealthyRejectsInvalidPort(t *testing.T) {
+	t.Parallel()
+
+	if IsHealthy(0) {
+		t.Fatal("expected invalid port to be unhealthy")
+	}
+}

@@ -111,6 +111,27 @@ func SaveProcess(process Process) error {
 	return nil
 }
 
+func GetProcess(name string) (*Process, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("banco de dados não inicializado")
+	}
+
+	var process Process
+	err := DB.QueryRow(`
+		SELECT name, COALESCE(pid, 0), COALESCE(port, 0), status
+		FROM processes
+		WHERE name = ?
+	`, name).Scan(&process.Name, &process.PID, &process.Port, &process.Status)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("erro ao consultar processo %s: %w", name, err)
+	}
+
+	return &process, nil
+}
+
 // Close fecha a conexão com o banco de dados
 func Close() {
 	if DB != nil {

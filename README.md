@@ -175,6 +175,11 @@ Quando o servidor responde ao endpoint `/health`, o CLI exibe o PID, a porta,
 a URL de health check e o caminho do log. O PID e a porta são registrados em
 `~/.hubsaude/runner.db`.
 
+Se já houver uma instância registrada e saudável, o `start` reutiliza essa
+instância em vez de iniciar uma nova. Se o registro existir, mas o `/health`
+não responder, o estado local é marcado como parado e uma nova instância é
+iniciada.
+
 ### `assinatura sign`
 
 Cria uma assinatura digital simulada invocando o `assinador.jar`.
@@ -410,5 +415,9 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Porta pode ser personalizada via parâmetro `--port` | DONE |
 | PID e porta do processo são registrados em `~/.hubsaude/` | DONE |
 | Feedback é exibido ao usuário confirmando que o servidor iniciou | DONE |
-| US-01.7 - Detectar instância do assinador.jar em execução | TODO |
+| US-01.7 - Detectar instância do assinador.jar em execução | DONE |
+| CLI consulta `~/.hubsaude/` para verificar processo registrado | DONE |
+| Verificação de health check HTTP confirma que o processo está respondendo | DONE |
+| Se instância ativa é encontrada, CLI a reutiliza em vez de iniciar nova | DONE |
+| Se processo registrado não responde, é considerado inativo | DONE |
 | US-01.6 - Invocar assinador.jar via HTTP | TODO |

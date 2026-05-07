@@ -287,7 +287,11 @@ func runStart() error {
 		return err
 	}
 
-	fmt.Println("assinador.jar iniciado em background")
+	if result.Reused {
+		fmt.Println("assinador.jar já estava em execução; reutilizando instância existente")
+	} else {
+		fmt.Println("assinador.jar iniciado em background")
+	}
 	fmt.Printf("PID      : %d\n", result.PID)
 	fmt.Printf("Porta    : %d\n", result.Port)
 	fmt.Printf("Health   : http://127.0.0.1:%d/health\n", result.Port)
