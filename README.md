@@ -377,3 +377,18 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | JDK baixado é armazenado em `~/.hubsaude/jdk/` para reuso | DONE |
 | Download não é repetido se JDK já estiver provisionado | DONE |
 | Testes cobrem detecção de JDK presente e ausente nas três plataformas | TODO |
+
+### Sprint 3
+
+| requirement/task/US | status |
+|---|---|
+| Sprint 3 overall | TODO |
+| US-02.4 - Endpoints HTTP do assinador.jar | DONE |
+| `SignatureController` implementado com endpoints `POST /sign` e `POST /validate` | DONE |
+| Endpoint `GET /health` disponível para checagem do servidor | DONE |
+| Endpoints reutilizam a mesma lógica de validação e simulação do modo CLI | DONE |
+| Respostas HTTP seguem estrutura consistente para sucesso e erro | DONE |
+| Testes de integração validam `/health`, `/sign` e `/validate` | DONE |
+| US-01.5 - Iniciar assinador.jar no modo servidor | TODO |
+| US-01.7 - Detectar instância do assinador.jar em execução | TODO |
+| US-01.6 - Invocar assinador.jar via HTTP | TODO |

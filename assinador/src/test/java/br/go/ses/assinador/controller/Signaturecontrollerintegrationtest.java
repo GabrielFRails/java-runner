@@ -8,15 +8,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * Testes de integração dos endpoints HTTP.
  * Sobem o contexto Spring completo e validam o fluxo ponta-a-ponta.
- *
- * Ambos os testes são "must fail" — verificam que requisições inválidas
- * retornam HTTP 422 com o código FHIR correto.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -46,10 +44,77 @@ class SignatureControllerIntegrationTest {
         }
         """;
 
-    /**
-     * Testa que certificateChain com apenas 1 elemento é rejeitado.
-     * Equivalente ao curl: certificateChain: ["MAMB"]
-     */
+    private static final String BUNDLE_VALIDO =
+        "{\\\"resourceType\\\":\\\"Bundle\\\",\\\"type\\\":\\\"collection\\\",\\\"entry\\\":[{\\\"fullUrl\\\":\\\"urn:uuid:550e8400-e29b-41d4-a716-446655440000\\\",\\\"resource\\\":{\\\"resourceType\\\":\\\"Patient\\\"}}]}";
+
+    private static final String PROVENANCE_VALIDA =
+        "{\\\"resourceType\\\":\\\"Provenance\\\",\\\"target\\\":[{\\\"reference\\\":\\\"urn:uuid:550e8400-e29b-41d4-a716-446655440000\\\"}],\\\"recorded\\\":\\\"2025-01-01T00:00:00Z\\\",\\\"agent\\\":[{\\\"who\\\":{\\\"reference\\\":\\\"Practitioner/1\\\"}}]}";
+
+    @Test
+    @DisplayName("GET /health deve retornar status UP")
+    void healthDeveRetornarStatusUp() throws Exception {
+        mockMvc.perform(get("/health"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.status").value("UP"))
+            .andExpect(jsonPath("$.service").value("assinador"));
+    }
+
+    @Test
+    @DisplayName("POST /sign deve criar assinatura simulada para payload válido")
+    void signDeveRetornarAssinaturaParaPayloadValido() throws Exception {
+        long agora = System.currentTimeMillis() / 1000;
+
+        String payload = """
+            {
+              "bundle": "%s",
+              "provenance": "%s",
+              "referenceTimestamp": %d,
+              "strategy": "iat",
+              "policyUri": "%s",
+              "certificateChain": ["MAMA", "MAMA"],
+              "cryptoMaterial": {
+                "type": "PEM",
+                "privateKeyPem": "-----BEGIN PRIVATE KEY-----\\nMIIE\\n-----END PRIVATE KEY-----"
+              },
+              "config": %s
+            }
+            """.formatted(BUNDLE_VALIDO, PROVENANCE_VALIDA, agora, POLICY_VALIDA, CONFIG_PADRAO);
+
+        mockMvc.perform(post("/sign")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.resourceType").value("Signature"))
+            .andExpect(jsonPath("$.sigFormat").value("application/jose"))
+            .andExpect(jsonPath("$.data").value("U0lNVUxBVEVEX1NJR05BVFVSRQ=="));
+    }
+
+    @Test
+    @DisplayName("POST /validate deve retornar sucesso para assinatura simulada válida")
+    void validateDeveRetornarSucessoParaAssinaturaValida() throws Exception {
+        long agora = System.currentTimeMillis() / 1000;
+
+        String payload = """
+            {
+              "signatureData": "U0lNVUxBVEVEX1NJR05BVFVSRQ==",
+              "referenceTimestamp": %d,
+              "policyUri": "%s",
+              "config": %s
+            }
+            """.formatted(agora, POLICY_VALIDA, CONFIG_PADRAO);
+
+        mockMvc.perform(post("/validate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.resourceType").value("OperationOutcome"))
+            .andExpect(jsonPath("$.issue[0].severity").value("information"))
+            .andExpect(jsonPath("$.issue[0].details.coding[0].code").value("VALIDATION.SUCCESS"));
+    }
+
     @Test
     @DisplayName("MUST FAIL — certificateChain com 1 elemento deve retornar CERT.CHAIN-INCOMPLETE")
     void deveRejeitarCertChainIncompleta() throws Exception {
@@ -57,8 +122,8 @@ class SignatureControllerIntegrationTest {
 
         String payload = """
             {
-              "bundle": "{\\"resourceType\\":\\"Bundle\\",\\"type\\":\\"collection\\",\\"entry\\":[{\\"fullUrl\\":\\"urn:uuid:550e8400-e29b-41d4-a716-446655440000\\",\\"resource\\":{\\"resourceType\\":\\"Patient\\"}}]}",
-              "provenance": "{\\"resourceType\\":\\"Provenance\\",\\"target\\":[{\\"reference\\":\\"urn:uuid:550e8400-e29b-41d4-a716-446655440000\\"}],\\"recorded\\":\\"2025-01-01T00:00:00Z\\",\\"agent\\":[{\\"who\\":{\\"reference\\":\\"Practitioner/1\\"}}]}",
+              "bundle": "%s",
+              "provenance": "%s",
               "referenceTimestamp": %d,
               "strategy": "iat",
               "policyUri": "%s",
@@ -69,7 +134,7 @@ class SignatureControllerIntegrationTest {
               },
               "config": %s
             }
-            """.formatted(agora, POLICY_VALIDA, CONFIG_PADRAO);
+            """.formatted(BUNDLE_VALIDO, PROVENANCE_VALIDA, agora, POLICY_VALIDA, CONFIG_PADRAO);
 
         mockMvc.perform(post("/sign")
                 .contentType(MediaType.APPLICATION_JSON)
