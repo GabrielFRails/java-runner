@@ -70,3 +70,19 @@ func TestValidateValidateFlagsAcceptsValidFlow(t *testing.T) {
 		t.Fatalf("expected valid validate flags, got error: %v", err)
 	}
 }
+
+func TestValidateStartPortRejectsInvalidPort(t *testing.T) {
+	t.Parallel()
+
+	if err := validateStartPort(0); err == nil {
+		t.Fatal("expected error for invalid port")
+	}
+}
+
+func TestValidateStartPortAcceptsValidPort(t *testing.T) {
+	t.Parallel()
+
+	if err := validateStartPort(8080); err != nil {
+		t.Fatalf("expected valid port, got error: %v", err)
+	}
+}

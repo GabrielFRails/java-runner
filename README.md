@@ -159,6 +159,22 @@ Java detectado e localização do `assinador.jar`.
 # assinador.jar         : /Users/usuario/code/java-runner/assinador.jar
 ```
 
+### `assinatura start`
+
+Inicia o `assinador.jar` em modo servidor HTTP, em background.
+
+```bash
+# Porta padrão: 8080
+./assinatura start
+
+# Porta personalizada
+./assinatura start --port 18080
+```
+
+Quando o servidor responde ao endpoint `/health`, o CLI exibe o PID, a porta,
+a URL de health check e o caminho do log. O PID e a porta são registrados em
+`~/.hubsaude/runner.db`.
+
 ### `assinatura sign`
 
 Cria uma assinatura digital simulada invocando o `assinador.jar`.
@@ -389,6 +405,10 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Endpoints reutilizam a mesma lógica de validação e simulação do modo CLI | DONE |
 | Respostas HTTP seguem estrutura consistente para sucesso e erro | DONE |
 | Testes de integração validam `/health`, `/sign` e `/validate` | DONE |
-| US-01.5 - Iniciar assinador.jar no modo servidor | TODO |
+| US-01.5 - Iniciar assinador.jar no modo servidor | DONE |
+| CLI inicia o `assinador.jar` como processo em background na porta padrão | DONE |
+| Porta pode ser personalizada via parâmetro `--port` | DONE |
+| PID e porta do processo são registrados em `~/.hubsaude/` | DONE |
+| Feedback é exibido ao usuário confirmando que o servidor iniciou | DONE |
 | US-01.7 - Detectar instância do assinador.jar em execução | TODO |
 | US-01.6 - Invocar assinador.jar via HTTP | TODO |

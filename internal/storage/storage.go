@@ -14,6 +14,13 @@ const dbName = "runner.db"
 
 var DB *sql.DB
 
+type Process struct {
+	Name   string
+	PID    int
+	Port   int
+	Status string
+}
+
 func HomeDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -78,6 +85,27 @@ func createSchema() error {
 	_, err := DB.Exec(schema)
 	if err != nil {
 		return fmt.Errorf("erro ao criar schema: %w", err)
+	}
+
+	return nil
+}
+
+func SaveProcess(process Process) error {
+	if DB == nil {
+		return fmt.Errorf("banco de dados não inicializado")
+	}
+
+	_, err := DB.Exec(`
+		INSERT INTO processes (name, pid, port, status, updated_at)
+		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(name) DO UPDATE SET
+			pid = excluded.pid,
+			port = excluded.port,
+			status = excluded.status,
+			updated_at = CURRENT_TIMESTAMP
+	`, process.Name, process.PID, process.Port, process.Status)
+	if err != nil {
+		return fmt.Errorf("erro ao salvar processo %s: %w", process.Name, err)
 	}
 
 	return nil

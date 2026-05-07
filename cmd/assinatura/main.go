@@ -5,21 +5,24 @@ import (
 	"os"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/kyriosdata/assinatura/internal/environment"
 	"github.com/kyriosdata/assinatura/internal/jar"
 	"github.com/kyriosdata/assinatura/internal/runner"
+	"github.com/kyriosdata/assinatura/internal/server"
 	"github.com/kyriosdata/assinatura/internal/storage"
+	"github.com/spf13/cobra"
 )
 
 var version = "dev"
 
 var signFlags jar.SignFlags
 var validateFlags jar.ValidateFlags
+var startPort int
 var startupFn = startup
 var runSignFn = runSign
 var runValidateFn = runValidate
 var runStatusFn = runStatus
+var runStartFn = runStart
 
 var rootCmd = &cobra.Command{
 	Use:   "assinatura",
@@ -35,6 +38,18 @@ var statusCmd = &cobra.Command{
 	Short: "Exibe o status do ambiente",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runStatusFn()
+	},
+}
+
+var startCmd = &cobra.Command{
+	Use:   "start",
+	Short: "Inicia o assinador.jar em modo servidor",
+	Long:  `Inicia o assinador.jar como servidor HTTP em background.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return validateStartPort(startPort)
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runStartFn()
 	},
 }
 
@@ -109,7 +124,10 @@ func init() {
 	validateCmd.Flags().StringVar(&validateFlags.PolicyUri, "policy", "", "URI da política de assinatura (obrigatório)")
 	validateCmd.Flags().StringVar(&validateFlags.Config, "config", "", "Arquivo JSON com configurações operacionais (obrigatório)")
 
+	startCmd.Flags().IntVar(&startPort, "port", server.DefaultPort, "Porta HTTP do servidor assinador")
+
 	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(signCmd)
 	rootCmd.AddCommand(validateCmd)
@@ -198,6 +216,13 @@ func validateValidateFlags(flags jar.ValidateFlags) error {
 	return nil
 }
 
+func validateStartPort(port int) error {
+	if port <= 0 || port > 65535 {
+		return fmt.Errorf("porta inválida: %d", port)
+	}
+	return nil
+}
+
 func runSign() error {
 	javaInfo, err := environment.DetectJava()
 	if err != nil {
@@ -243,6 +268,30 @@ func runValidate() error {
 	if result.ExitCode != 0 {
 		os.Exit(result.ExitCode)
 	}
+	return nil
+}
+
+func runStart() error {
+	javaInfo, err := environment.DetectJava()
+	if err != nil {
+		return fmt.Errorf("Java não encontrado: %w\nInstale o Java ou aguarde o provisionamento automático (US-04)", err)
+	}
+
+	jarPath, err := jar.Locate()
+	if err != nil {
+		return err
+	}
+
+	result, err := server.Start(javaInfo.Path, jarPath, startPort)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("assinador.jar iniciado em background")
+	fmt.Printf("PID      : %d\n", result.PID)
+	fmt.Printf("Porta    : %d\n", result.Port)
+	fmt.Printf("Health   : http://127.0.0.1:%d/health\n", result.Port)
+	fmt.Printf("Log      : %s\n", result.LogPath)
 	return nil
 }
 
