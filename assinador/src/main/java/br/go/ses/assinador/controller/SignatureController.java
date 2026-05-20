@@ -37,8 +37,8 @@ public class SignatureController {
     )
     public ResponseEntity<String> sign(@RequestBody SignRequest request) { // usar um DTO?
         try {
-            validator.validateSignRequest(request);
-            String result = signatureService.sign(request);
+            validator.validateSignRequest(request); // camada aplication esta dependendo da presentantion
+            String result = signatureService.sign(request); // aqui eu estou fazendo validações de camadas muito mais abaixo o que é errado, nessa cada de presentation é pra fazer validacao de contrato somente
             return ResponseEntity.ok(result);
         } catch (ValidationException e) {
             return ResponseEntity
