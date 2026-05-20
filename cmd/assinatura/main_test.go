@@ -49,6 +49,41 @@ func TestValidateSignFlagsRequiresPkcs12Fields(t *testing.T) {
 	}
 }
 
+func TestValidateSignFlagsRequiresTokenFields(t *testing.T) {
+	t.Parallel()
+
+	err := validateSignFlags(jar.SignFlags{
+		Bundle:     "bundle.json",
+		Provenance: "provenance.json",
+		PolicyUri:  "https://example.com/policy|0.1.2",
+		CertChain:  "chain.json",
+		Config:     "config.json",
+		CryptoType: "TOKEN",
+	})
+	if err == nil {
+		t.Fatal("expected error for incomplete TOKEN flags")
+	}
+}
+
+func TestValidateSignFlagsAcceptsTokenFlow(t *testing.T) {
+	t.Parallel()
+
+	err := validateSignFlags(jar.SignFlags{
+		Bundle:           "bundle.json",
+		Provenance:       "provenance.json",
+		PolicyUri:        "https://example.com/policy|0.1.2",
+		CertChain:        "chain.json",
+		Config:           "config.json",
+		CryptoType:       "TOKEN",
+		CryptoPin:        "1234",
+		CryptoIdentifier: "alias",
+		Pkcs11Library:    "/usr/lib/softhsm/libsofthsm2.so",
+	})
+	if err != nil {
+		t.Fatalf("expected valid TOKEN flags, got error: %v", err)
+	}
+}
+
 func TestValidateValidateFlagsRequiresCoreFlags(t *testing.T) {
 	t.Parallel()
 

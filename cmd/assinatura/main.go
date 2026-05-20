@@ -135,6 +135,11 @@ func init() {
 	signCmd.Flags().StringVar(&signFlags.CryptoPassword, "crypto-password", "", "Senha do material criptográfico")
 	signCmd.Flags().StringVar(&signFlags.CryptoPkcs12, "crypto-pkcs12", "", "Arquivo PKCS12 em base64")
 	signCmd.Flags().StringVar(&signFlags.CryptoAlias, "crypto-alias", "", "Alias da chave no PKCS12")
+	signCmd.Flags().StringVar(&signFlags.CryptoPin, "crypto-pin", "", "PIN do token/smartcard")
+	signCmd.Flags().StringVar(&signFlags.CryptoIdentifier, "crypto-identifier", "", "Alias/identificador da chave no token/smartcard")
+	signCmd.Flags().StringVar(&signFlags.Pkcs11Library, "pkcs11-library", "", "Caminho da biblioteca PKCS#11 do token/smartcard")
+	signCmd.Flags().IntVar(&signFlags.Pkcs11Slot, "pkcs11-slot", 0, "Slot PKCS#11 do token/smartcard")
+	signCmd.Flags().StringVar(&signFlags.TokenLabel, "token-label", "", "Rótulo opcional do token/smartcard")
 	signCmd.Flags().StringVar(&signFlags.Config, "config", "", "Arquivo JSON com configurações operacionais (obrigatório)")
 
 	// flags do comando validate
@@ -208,6 +213,16 @@ func validateSignFlags(flags jar.SignFlags) error {
 		}
 		if flags.CryptoAlias == "" {
 			missing = append(missing, "--crypto-alias")
+		}
+	case "SMARTCARD", "TOKEN":
+		if flags.CryptoPin == "" {
+			missing = append(missing, "--crypto-pin")
+		}
+		if flags.CryptoIdentifier == "" {
+			missing = append(missing, "--crypto-identifier")
+		}
+		if flags.Pkcs11Library == "" {
+			missing = append(missing, "--pkcs11-library")
 		}
 	}
 

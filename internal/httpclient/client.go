@@ -19,11 +19,16 @@ type Result struct {
 }
 
 type cryptoMaterial struct {
-	Type          string `json:"type,omitempty"`
-	PrivateKeyPEM string `json:"privateKeyPem,omitempty"`
-	Password      string `json:"password,omitempty"`
-	PKCS12Base64  string `json:"pkcs12Base64,omitempty"`
-	Alias         string `json:"alias,omitempty"`
+	Type              string `json:"type,omitempty"`
+	PrivateKeyPEM     string `json:"privateKeyPem,omitempty"`
+	Password          string `json:"password,omitempty"`
+	PKCS12Base64      string `json:"pkcs12Base64,omitempty"`
+	Alias             string `json:"alias,omitempty"`
+	Pin               string `json:"pin,omitempty"`
+	Identifier        string `json:"identifier,omitempty"`
+	Pkcs11LibraryPath string `json:"pkcs11LibraryPath,omitempty"`
+	SlotID            *int   `json:"slotId,omitempty"`
+	TokenLabel        string `json:"tokenLabel,omitempty"`
 }
 
 type signRequest struct {
@@ -117,12 +122,19 @@ func buildValidateRequest(flags jar.ValidateFlags) (validateRequest, error) {
 
 func buildCryptoMaterial(flags jar.SignFlags) (cryptoMaterial, error) {
 	material := cryptoMaterial{
-		Type:     flags.CryptoType,
-		Password: flags.CryptoPassword,
-		Alias:    flags.CryptoAlias,
+		Type:              flags.CryptoType,
+		Password:          flags.CryptoPassword,
+		Alias:             flags.CryptoAlias,
+		Pin:               flags.CryptoPin,
+		Identifier:        flags.CryptoIdentifier,
+		Pkcs11LibraryPath: flags.Pkcs11Library,
+		TokenLabel:        flags.TokenLabel,
 	}
 	if material.Type == "" {
 		material.Type = "PEM"
+	}
+	if flags.Pkcs11Slot != 0 {
+		material.SlotID = &flags.Pkcs11Slot
 	}
 
 	if flags.CryptoPem != "" {
