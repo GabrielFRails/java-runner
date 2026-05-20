@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kyriosdata/assinatura/internal/environment"
+	"github.com/kyriosdata/assinatura/internal/httpclient"
 	"github.com/kyriosdata/assinatura/internal/jar"
 	"github.com/kyriosdata/assinatura/internal/runner"
 	"github.com/kyriosdata/assinatura/internal/server"
@@ -224,6 +225,20 @@ func validateStartPort(port int) error {
 }
 
 func runSign() error {
+	if process, err := activeAssinadorProcess(); err != nil {
+		return err
+	} else if process != nil {
+		result, err := httpclient.Sign(process.Port, signFlags)
+		if err != nil {
+			return err
+		}
+		fmt.Println(result.Output)
+		if result.StatusCode >= 400 {
+			os.Exit(1)
+		}
+		return nil
+	}
+
 	javaInfo, err := environment.DetectJava()
 	if err != nil {
 		return fmt.Errorf("Java não encontrado: %w\nInstale o Java ou aguarde o provisionamento automático (US-04)", err)
@@ -248,6 +263,20 @@ func runSign() error {
 }
 
 func runValidate() error {
+	if process, err := activeAssinadorProcess(); err != nil {
+		return err
+	} else if process != nil {
+		result, err := httpclient.Validate(process.Port, validateFlags)
+		if err != nil {
+			return err
+		}
+		fmt.Println(result.Output)
+		if result.StatusCode >= 400 {
+			os.Exit(1)
+		}
+		return nil
+	}
+
 	javaInfo, err := environment.DetectJava()
 	if err != nil {
 		return fmt.Errorf("Java não encontrado: %w\nInstale o Java ou aguarde o provisionamento automático (US-04)", err)
@@ -269,6 +298,30 @@ func runValidate() error {
 		os.Exit(result.ExitCode)
 	}
 	return nil
+}
+
+func activeAssinadorProcess() (*storage.Process, error) {
+	process, err := storage.GetProcess(server.AssinadorProcessName)
+	if err != nil {
+		return nil, err
+	}
+	if process == nil || process.Status != "running" {
+		return nil, nil
+	}
+	if server.IsHealthy(process.Port) {
+		return process, nil
+	}
+
+	if err := storage.SaveProcess(storage.Process{
+		Name:   process.Name,
+		PID:    process.PID,
+		Port:   process.Port,
+		Status: "stopped",
+	}); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func runStart() error {

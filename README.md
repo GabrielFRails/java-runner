@@ -182,7 +182,9 @@ iniciada.
 
 ### `assinatura sign`
 
-Cria uma assinatura digital simulada invocando o `assinador.jar`.
+Cria uma assinatura digital simulada. Se houver uma instância saudável do
+`assinador.jar` registrada em `~/.hubsaude/runner.db`, o CLI chama o endpoint
+HTTP `/sign`. Caso contrário, usa o fallback local `java -jar assinador.jar`.
 
 ```bash
 ./assinatura sign \
@@ -238,7 +240,9 @@ EOF
 
 ### `assinatura validate`
 
-Valida uma assinatura digital simulada invocando o `assinador.jar`.
+Valida uma assinatura digital simulada. Se houver uma instância saudável do
+`assinador.jar` registrada em `~/.hubsaude/runner.db`, o CLI chama o endpoint
+HTTP `/validate`. Caso contrário, usa o fallback local `java -jar assinador.jar`.
 
 ```bash
 ./assinatura validate \
@@ -420,4 +424,8 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Verificação de health check HTTP confirma que o processo está respondendo | DONE |
 | Se instância ativa é encontrada, CLI a reutiliza em vez de iniciar nova | DONE |
 | Se processo registrado não responde, é considerado inativo | DONE |
-| US-01.6 - Invocar assinador.jar via HTTP | TODO |
+| US-01.6 - Invocar assinador.jar via HTTP | DONE |
+| CLI envia requisições HTTP para os endpoints `/sign` e `/validate` | DONE |
+| Modo servidor é utilizado por padrão quando há instância em execução | DONE |
+| Fallback para modo local quando servidor não está disponível | DONE |
+| Testes cobrem montagem dos payloads HTTP de `sign` e `validate` | DONE |
