@@ -130,6 +130,17 @@ Esse alvo verifica três cenários simples:
 O comando faz build do CLI, empacota o `assinador.jar`, gera arquivos de teste
 em `/tmp` e executa o fluxo local `CLI -> java -jar -> assinador.jar`.
 
+Para validar o modo servidor gerenciado pelo CLI, use:
+
+```bash
+make test-integration-server
+```
+
+Esse alvo faz build do projeto, cria arquivos de teste em `/tmp` e valida o
+fluxo `assinatura start -> sign via HTTP -> validate via HTTP -> assinatura stop`
+usando um diretório `HOME` temporário para não alterar o `~/.hubsaude` real do
+usuário.
+
 ---
 
 ## Comandos disponíveis
