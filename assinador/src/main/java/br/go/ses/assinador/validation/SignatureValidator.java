@@ -374,6 +374,10 @@ public class SignatureValidator {
                     throw new ValidationException("CONFIG.MISSING-PARAMETER",
                         "cryptoMaterial.identifier é obrigatório para type=" + crypto.getType());
                 }
+                if (crypto.getPkcs11LibraryPath() == null || crypto.getPkcs11LibraryPath().isBlank()) {
+                    throw new ValidationException("PKCS11.LIBRARY-MISSING",
+                        "cryptoMaterial.pkcs11LibraryPath é obrigatório para type=" + crypto.getType());
+                }
                 if (crypto.getTokenLabel() != null && crypto.getTokenLabel().length() > 32) {
                     throw new ValidationException("MIDDLEWARE.TOKEN-LABEL-INVALID",
                         "cryptoMaterial.tokenLabel não pode exceder 32 caracteres");
