@@ -2,6 +2,9 @@ package br.go.ses.assinador.service;
 
 import br.go.ses.assinador.model.SignRequest;
 import br.go.ses.assinador.model.ValidateRequest;
+import br.go.ses.assinador.model.CryptoMaterial;
+import br.go.ses.assinador.crypto.Pkcs11TokenService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -21,12 +24,27 @@ public class FakeSignatureService implements SignatureService {
     private static final String CODESYSTEM =
         "https://fhir.saude.go.gov.br/r4/seguranca/CodeSystem/situacao-excepcional-assinatura";
 
+    private final Pkcs11TokenService pkcs11TokenService;
+
+    public FakeSignatureService() {
+        this(new Pkcs11TokenService());
+    }
+
+    @Autowired
+    public FakeSignatureService(Pkcs11TokenService pkcs11TokenService) {
+        this.pkcs11TokenService = pkcs11TokenService;
+    }
+
     /**
      * Retorna uma assinatura FHIR simulada.
      * Em um sistema real, aqui ocorreria a operação criptográfica JAdES/JWS.
      */
     @Override
     public String sign(SignRequest request) {
+        if (usesPkcs11(request)) {
+            pkcs11TokenService.assertTokenAvailable(request.getCryptoMaterial());
+        }
+
         // Em produção: executaria as 14 etapas de criação de assinatura JAdES
         // Aqui: retorna resposta simulada pré-construída
         return """
@@ -49,6 +67,14 @@ public class FakeSignatureService implements SignatureService {
               "data": "U0lNVUxBVEVEX1NJR05BVFVSRQ=="
             }
             """;
+    }
+
+    private boolean usesPkcs11(SignRequest request) {
+        if (request == null || request.getCryptoMaterial() == null) {
+            return false;
+        }
+        CryptoMaterial.Type type = request.getCryptoMaterial().getType();
+        return type == CryptoMaterial.Type.SMARTCARD || type == CryptoMaterial.Type.TOKEN;
     }
 
     /**
