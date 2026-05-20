@@ -19,10 +19,11 @@ const (
 )
 
 type StartResult struct {
-	PID     int
-	Port    int
-	LogPath string
-	Reused  bool
+	PID            int
+	Port           int
+	LogPath        string
+	Reused         bool
+	TimeoutMinutes int
 }
 
 type StopResult struct {
@@ -32,9 +33,12 @@ type StopResult struct {
 	WasActive bool
 }
 
-func Start(javaPath, jarPath string, port int) (*StartResult, error) {
+func Start(javaPath, jarPath string, port int, timeoutMinutes int) (*StartResult, error) {
 	if port <= 0 || port > 65535 {
 		return nil, fmt.Errorf("porta inválida: %d", port)
+	}
+	if timeoutMinutes < 0 {
+		return nil, fmt.Errorf("timeout inválido: %d", timeoutMinutes)
 	}
 
 	home, err := storage.HomeDir()
@@ -54,10 +58,11 @@ func Start(javaPath, jarPath string, port int) (*StartResult, error) {
 	if existing != nil && existing.Status == "running" {
 		if isHealthy(existing.Port) {
 			return &StartResult{
-				PID:     existing.PID,
-				Port:    existing.Port,
-				LogPath: logPath,
-				Reused:  true,
+				PID:            existing.PID,
+				Port:           existing.Port,
+				LogPath:        logPath,
+				Reused:         true,
+				TimeoutMinutes: timeoutMinutes,
 			}, nil
 		}
 
@@ -77,7 +82,12 @@ func Start(javaPath, jarPath string, port int) (*StartResult, error) {
 	}
 	defer logFile.Close()
 
-	cmd := exec.Command(javaPath, "-jar", jarPath, fmt.Sprintf("--server.port=%d", port))
+	args := []string{"-jar", jarPath, fmt.Sprintf("--server.port=%d", port)}
+	if timeoutMinutes > 0 {
+		args = append(args, fmt.Sprintf("--hubsaude.inactivity-timeout-minutes=%d", timeoutMinutes))
+	}
+
+	cmd := exec.Command(javaPath, args...)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	cmd.SysProcAttr = backgroundProcessAttributes()
@@ -87,9 +97,10 @@ func Start(javaPath, jarPath string, port int) (*StartResult, error) {
 	}
 
 	result := &StartResult{
-		PID:     cmd.Process.Pid,
-		Port:    port,
-		LogPath: logPath,
+		PID:            cmd.Process.Pid,
+		Port:           port,
+		LogPath:        logPath,
+		TimeoutMinutes: timeoutMinutes,
 	}
 
 	if err := waitForHealth(port, startupTimeout); err != nil {

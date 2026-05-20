@@ -86,3 +86,19 @@ func TestValidateStartPortAcceptsValidPort(t *testing.T) {
 		t.Fatalf("expected valid port, got error: %v", err)
 	}
 }
+
+func TestValidateStartTimeoutRejectsNegativeValue(t *testing.T) {
+	t.Parallel()
+
+	if err := validateStartTimeout(-1); err == nil {
+		t.Fatal("expected error for negative timeout")
+	}
+}
+
+func TestValidateStartTimeoutAcceptsZero(t *testing.T) {
+	t.Parallel()
+
+	if err := validateStartTimeout(0); err != nil {
+		t.Fatalf("expected zero timeout to be valid, got error: %v", err)
+	}
+}

@@ -19,6 +19,7 @@ var version = "dev"
 var signFlags jar.SignFlags
 var validateFlags jar.ValidateFlags
 var startPort int
+var startTimeoutMinutes int
 var stopPort int
 var startupFn = startup
 var runSignFn = runSign
@@ -49,7 +50,10 @@ var startCmd = &cobra.Command{
 	Short: "Inicia o assinador.jar em modo servidor",
 	Long:  `Inicia o assinador.jar como servidor HTTP em background.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return validateStartPort(startPort)
+		if err := validateStartPort(startPort); err != nil {
+			return err
+		}
+		return validateStartTimeout(startTimeoutMinutes)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runStartFn()
@@ -140,6 +144,7 @@ func init() {
 	validateCmd.Flags().StringVar(&validateFlags.Config, "config", "", "Arquivo JSON com configurações operacionais (obrigatório)")
 
 	startCmd.Flags().IntVar(&startPort, "port", server.DefaultPort, "Porta HTTP do servidor assinador")
+	startCmd.Flags().IntVar(&startTimeoutMinutes, "timeout", 0, "Tempo máximo de inatividade em minutos antes de encerrar o servidor (0 desativa)")
 	stopCmd.Flags().IntVar(&stopPort, "port", server.DefaultPort, "Porta HTTP do servidor assinador")
 
 	rootCmd.AddCommand(statusCmd)
@@ -236,6 +241,13 @@ func validateValidateFlags(flags jar.ValidateFlags) error {
 func validateStartPort(port int) error {
 	if port <= 0 || port > 65535 {
 		return fmt.Errorf("porta inválida: %d", port)
+	}
+	return nil
+}
+
+func validateStartTimeout(timeoutMinutes int) error {
+	if timeoutMinutes < 0 {
+		return fmt.Errorf("timeout inválido: %d", timeoutMinutes)
 	}
 	return nil
 }
@@ -351,7 +363,7 @@ func runStart() error {
 		return err
 	}
 
-	result, err := server.Start(javaInfo.Path, jarPath, startPort)
+	result, err := server.Start(javaInfo.Path, jarPath, startPort, startTimeoutMinutes)
 	if err != nil {
 		return err
 	}
@@ -365,6 +377,11 @@ func runStart() error {
 	fmt.Printf("Porta    : %d\n", result.Port)
 	fmt.Printf("Health   : http://127.0.0.1:%d/health\n", result.Port)
 	fmt.Printf("Log      : %s\n", result.LogPath)
+	if result.TimeoutMinutes > 0 {
+		fmt.Printf("Timeout  : %d minuto(s) de inatividade\n", result.TimeoutMinutes)
+	} else {
+		fmt.Printf("Timeout  : desativado\n")
+	}
 	return nil
 }
 

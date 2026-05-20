@@ -9,8 +9,16 @@ import (
 func TestStartRejectsInvalidPort(t *testing.T) {
 	t.Parallel()
 
-	if _, err := Start("java", "assinador.jar", 0); err == nil {
+	if _, err := Start("java", "assinador.jar", 0, 0); err == nil {
 		t.Fatal("expected error for invalid port")
+	}
+}
+
+func TestStartRejectsInvalidTimeout(t *testing.T) {
+	t.Parallel()
+
+	if _, err := Start("java", "assinador.jar", 8080, -1); err == nil {
+		t.Fatal("expected error for invalid timeout")
 	}
 }
 
