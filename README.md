@@ -169,6 +169,9 @@ Inicia o `assinador.jar` em modo servidor HTTP, em background.
 
 # Porta personalizada
 ./assinatura start --port 18080
+
+# Encerramento automático após 30 minutos sem interação
+./assinatura start --timeout 30
 ```
 
 Quando o servidor responde ao endpoint `/health`, o CLI exibe o PID, a porta,
@@ -179,6 +182,10 @@ Se já houver uma instância registrada e saudável, o `start` reutiliza essa
 instância em vez de iniciar uma nova. Se o registro existir, mas o `/health`
 não responder, o estado local é marcado como parado e uma nova instância é
 iniciada.
+
+O timeout por inatividade fica desativado por padrão. Quando `--timeout` é
+maior que zero, o próprio `assinador.jar` encerra após o período configurado
+sem receber chamadas em `/health`, `/sign` ou `/validate`.
 
 ### `assinatura stop`
 
@@ -449,3 +456,7 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Parâmetro `--port` permite especificar a porta do processo a encerrar | DONE |
 | Feedback é exibido confirmando o encerramento | DONE |
 | Registro em `~/.hubsaude/` é atualizado após encerramento | DONE |
+| US-01.9 - Agendar interrupção do assinador.jar por inatividade | DONE |
+| Parâmetro `--timeout <minutos>` define tempo máximo de inatividade | DONE |
+| Após o período sem requisições, `assinador.jar` é encerrado automaticamente | DONE |
+| Mecanismo de timeout é documentado no help do CLI | DONE |
