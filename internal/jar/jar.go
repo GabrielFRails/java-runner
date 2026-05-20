@@ -129,6 +129,21 @@ func buildSignArgs(jarPath string, f SignFlags) []string {
 	if f.CryptoAlias != "" {
 		args = append(args, "--crypto-alias", f.CryptoAlias)
 	}
+	if f.CryptoPin != "" {
+		args = append(args, "--crypto-pin", f.CryptoPin)
+	}
+	if f.CryptoIdentifier != "" {
+		args = append(args, "--crypto-identifier", f.CryptoIdentifier)
+	}
+	if f.Pkcs11Library != "" {
+		args = append(args, "--pkcs11-library", f.Pkcs11Library)
+	}
+	if f.Pkcs11Slot != 0 {
+		args = append(args, "--pkcs11-slot", fmt.Sprintf("%d", f.Pkcs11Slot))
+	}
+	if f.TokenLabel != "" {
+		args = append(args, "--token-label", f.TokenLabel)
+	}
 	if f.Config != "" {
 		args = append(args, "--config", f.Config)
 	}
@@ -158,18 +173,23 @@ func buildValidateArgs(jarPath string, f ValidateFlags) []string {
 
 // SignFlags agrupa as flags do comando sign
 type SignFlags struct {
-	Bundle         string
-	Provenance     string
-	Timestamp      int64
-	Strategy       string
-	PolicyUri      string
-	CertChain      string
-	CryptoType     string
-	CryptoPem      string
-	CryptoPassword string
-	CryptoPkcs12   string
-	CryptoAlias    string
-	Config         string
+	Bundle           string
+	Provenance       string
+	Timestamp        int64
+	Strategy         string
+	PolicyUri        string
+	CertChain        string
+	CryptoType       string
+	CryptoPem        string
+	CryptoPassword   string
+	CryptoPkcs12     string
+	CryptoAlias      string
+	CryptoPin        string
+	CryptoIdentifier string
+	Pkcs11Library    string
+	Pkcs11Slot       int
+	TokenLabel       string
+	Config           string
 }
 
 // ValidateFlags agrupa as flags do comando validate

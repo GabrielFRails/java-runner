@@ -104,6 +104,31 @@ public class AssinadorCli {
                         request.setCryptoMaterial(new CryptoMaterial());
                     request.getCryptoMaterial().setAlias(args[++i]);
                 }
+                case "--crypto-pin" -> {
+                    if (request.getCryptoMaterial() == null)
+                        request.setCryptoMaterial(new CryptoMaterial());
+                    request.getCryptoMaterial().setPin(args[++i]);
+                }
+                case "--crypto-identifier" -> {
+                    if (request.getCryptoMaterial() == null)
+                        request.setCryptoMaterial(new CryptoMaterial());
+                    request.getCryptoMaterial().setIdentifier(args[++i]);
+                }
+                case "--pkcs11-library" -> {
+                    if (request.getCryptoMaterial() == null)
+                        request.setCryptoMaterial(new CryptoMaterial());
+                    request.getCryptoMaterial().setPkcs11LibraryPath(args[++i]);
+                }
+                case "--pkcs11-slot" -> {
+                    if (request.getCryptoMaterial() == null)
+                        request.setCryptoMaterial(new CryptoMaterial());
+                    request.getCryptoMaterial().setSlotId(Integer.parseInt(args[++i]));
+                }
+                case "--token-label" -> {
+                    if (request.getCryptoMaterial() == null)
+                        request.setCryptoMaterial(new CryptoMaterial());
+                    request.getCryptoMaterial().setTokenLabel(args[++i]);
+                }
             }
         }
 
@@ -179,6 +204,7 @@ public class AssinadorCli {
                 --cert <arquivo-json-array> \\
                 --crypto-type <PEM|PKCS12|SMARTCARD|TOKEN> \\
                 --crypto-pem <arquivo>  (para type=PEM) \\
+                --crypto-pin <pin> --crypto-identifier <alias> --pkcs11-library <arquivo> (para TOKEN/SMARTCARD) \\
                 --config <arquivo>
 
               java -jar assinador.jar validate \\
