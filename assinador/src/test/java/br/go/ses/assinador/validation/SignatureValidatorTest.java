@@ -485,6 +485,34 @@ class SignatureValidatorTest {
             crypto.setPrivateKeyPem("-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----");
             assertThatNoException().isThrownBy(() -> validator.validateCryptoMaterial(crypto));
         }
+
+        @Test
+        @DisplayName("Deve exigir biblioteca PKCS#11 para TOKEN")
+        void deveRejeitarTokenSemBibliotecaPkcs11() {
+            var crypto = new CryptoMaterial();
+            crypto.setType(CryptoMaterial.Type.TOKEN);
+            crypto.setPin("1234");
+            crypto.setIdentifier("alias");
+
+            var ex = catchThrowableOfType(
+                () -> validator.validateCryptoMaterial(crypto),
+                ValidationException.class
+            );
+
+            assertThat(ex.getFhirCode()).isEqualTo("PKCS11.LIBRARY-MISSING");
+        }
+
+        @Test
+        @DisplayName("Deve aceitar TOKEN com parâmetros PKCS#11 mínimos")
+        void deveAceitarTokenComParametrosPkcs11() {
+            var crypto = new CryptoMaterial();
+            crypto.setType(CryptoMaterial.Type.TOKEN);
+            crypto.setPin("1234");
+            crypto.setIdentifier("alias");
+            crypto.setPkcs11LibraryPath("/usr/lib/softhsm/libsofthsm2.so");
+
+            assertThatNoException().isThrownBy(() -> validator.validateCryptoMaterial(crypto));
+        }
     }
 
     // -------------------------------------------------------------------------
