@@ -24,6 +24,7 @@ public class CryptoMaterial {
     // SMARTCARD / TOKEN
     private String pin;
     private String identifier;
+    private String pkcs11LibraryPath;
     private Integer slotId;       // opcional
     private String tokenLabel;    // opcional, máx 32 chars
 
@@ -47,6 +48,9 @@ public class CryptoMaterial {
 
     public String getIdentifier() { return identifier; }
     public void setIdentifier(String identifier) { this.identifier = identifier; }
+
+    public String getPkcs11LibraryPath() { return pkcs11LibraryPath; }
+    public void setPkcs11LibraryPath(String pkcs11LibraryPath) { this.pkcs11LibraryPath = pkcs11LibraryPath; }
 
     public Integer getSlotId() { return slotId; }
     public void setSlotId(Integer slotId) { this.slotId = slotId; }
