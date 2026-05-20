@@ -180,6 +180,21 @@ instância em vez de iniciar uma nova. Se o registro existir, mas o `/health`
 não responder, o estado local é marcado como parado e uma nova instância é
 iniciada.
 
+### `assinatura stop`
+
+Interrompe uma instância do `assinador.jar` iniciada pelo CLI.
+
+```bash
+# Porta padrão: 8080
+./assinatura stop
+
+# Porta personalizada
+./assinatura stop --port 18080
+```
+
+O CLI consulta o processo registrado em `~/.hubsaude/runner.db`, envia o sinal
+de encerramento ao PID salvo e atualiza o estado local para `stopped`.
+
 ### `assinatura sign`
 
 Cria uma assinatura digital simulada. Se houver uma instância saudável do
@@ -429,3 +444,8 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Modo servidor é utilizado por padrão quando há instância em execução | DONE |
 | Fallback para modo local quando servidor não está disponível | DONE |
 | Testes cobrem montagem dos payloads HTTP de `sign` e `validate` | DONE |
+| US-01.8 - Interromper execução do assinador.jar | DONE |
+| Comando `assinatura stop` encerra o assinador.jar na porta padrão | DONE |
+| Parâmetro `--port` permite especificar a porta do processo a encerrar | DONE |
+| Feedback é exibido confirmando o encerramento | DONE |
+| Registro em `~/.hubsaude/` é atualizado após encerramento | DONE |

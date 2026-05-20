@@ -19,11 +19,13 @@ var version = "dev"
 var signFlags jar.SignFlags
 var validateFlags jar.ValidateFlags
 var startPort int
+var stopPort int
 var startupFn = startup
 var runSignFn = runSign
 var runValidateFn = runValidate
 var runStatusFn = runStatus
 var runStartFn = runStart
+var runStopFn = runStop
 
 var rootCmd = &cobra.Command{
 	Use:   "assinatura",
@@ -51,6 +53,18 @@ var startCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runStartFn()
+	},
+}
+
+var stopCmd = &cobra.Command{
+	Use:   "stop",
+	Short: "Interrompe o assinador.jar em modo servidor",
+	Long:  `Interrompe uma instância do assinador.jar gerenciada pelo CLI.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return validateStartPort(stopPort)
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runStopFn()
 	},
 }
 
@@ -126,9 +140,11 @@ func init() {
 	validateCmd.Flags().StringVar(&validateFlags.Config, "config", "", "Arquivo JSON com configurações operacionais (obrigatório)")
 
 	startCmd.Flags().IntVar(&startPort, "port", server.DefaultPort, "Porta HTTP do servidor assinador")
+	stopCmd.Flags().IntVar(&stopPort, "port", server.DefaultPort, "Porta HTTP do servidor assinador")
 
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(startCmd)
+	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(signCmd)
 	rootCmd.AddCommand(validateCmd)
@@ -349,6 +365,23 @@ func runStart() error {
 	fmt.Printf("Porta    : %d\n", result.Port)
 	fmt.Printf("Health   : http://127.0.0.1:%d/health\n", result.Port)
 	fmt.Printf("Log      : %s\n", result.LogPath)
+	return nil
+}
+
+func runStop() error {
+	result, err := server.Stop(stopPort)
+	if err != nil {
+		return err
+	}
+
+	if !result.Stopped {
+		fmt.Printf("nenhuma instância gerenciada do assinador.jar encontrada na porta %d\n", stopPort)
+		return nil
+	}
+
+	fmt.Println("assinador.jar interrompido")
+	fmt.Printf("PID      : %d\n", result.PID)
+	fmt.Printf("Porta    : %d\n", result.Port)
 	return nil
 }
 

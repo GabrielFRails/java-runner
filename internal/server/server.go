@@ -25,6 +25,13 @@ type StartResult struct {
 	Reused  bool
 }
 
+type StopResult struct {
+	PID       int
+	Port      int
+	Stopped   bool
+	WasActive bool
+}
+
 func Start(javaPath, jarPath string, port int) (*StartResult, error) {
 	if port <= 0 || port > 65535 {
 		return nil, fmt.Errorf("porta inválida: %d", port)
@@ -112,6 +119,44 @@ func Start(javaPath, jarPath string, port int) (*StartResult, error) {
 
 func IsHealthy(port int) bool {
 	return isHealthy(port)
+}
+
+func Stop(port int) (*StopResult, error) {
+	if port <= 0 || port > 65535 {
+		return nil, fmt.Errorf("porta inválida: %d", port)
+	}
+
+	process, err := storage.GetProcess(AssinadorProcessName)
+	if err != nil {
+		return nil, err
+	}
+	if process == nil || process.Port != port || process.Status != "running" {
+		return &StopResult{Port: port}, nil
+	}
+
+	result := &StopResult{
+		PID:       process.PID,
+		Port:      process.Port,
+		WasActive: isHealthy(process.Port),
+	}
+
+	if process.PID > 0 {
+		if err := terminateProcess(process.PID); err != nil && result.WasActive {
+			return nil, fmt.Errorf("erro ao encerrar assinador.jar com PID %d: %w", process.PID, err)
+		}
+	}
+
+	if err := storage.SaveProcess(storage.Process{
+		Name:   AssinadorProcessName,
+		PID:    process.PID,
+		Port:   process.Port,
+		Status: "stopped",
+	}); err != nil {
+		return nil, err
+	}
+
+	result.Stopped = true
+	return result, nil
 }
 
 func isHealthy(port int) bool {
