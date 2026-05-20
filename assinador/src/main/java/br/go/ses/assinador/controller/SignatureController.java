@@ -4,6 +4,7 @@ import br.go.ses.assinador.model.SignRequest;
 import br.go.ses.assinador.model.ValidateRequest;
 import br.go.ses.assinador.model.ValidationException;
 import br.go.ses.assinador.service.SignatureService;
+import br.go.ses.assinador.lifecycle.InactivityShutdownMonitor;
 import br.go.ses.assinador.validation.SignatureValidator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,10 +25,16 @@ public class SignatureController {
 
     private final SignatureService signatureService;
     private final SignatureValidator validator;
+    private final InactivityShutdownMonitor inactivityMonitor;
 
-    public SignatureController(SignatureService signatureService, SignatureValidator validator) {
+    public SignatureController(
+        SignatureService signatureService,
+        SignatureValidator validator,
+        InactivityShutdownMonitor inactivityMonitor
+    ) {
         this.signatureService = signatureService;
         this.validator = validator;
+        this.inactivityMonitor = inactivityMonitor;
     }
 
     @PostMapping(
@@ -36,6 +43,7 @@ public class SignatureController {
         produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<String> sign(@RequestBody SignRequest request) { // usar um DTO?
+        inactivityMonitor.touch();
         try {
             validator.validateSignRequest(request); // camada aplication esta dependendo da presentantion
             String result = signatureService.sign(request); // aqui eu estou fazendo validações de camadas muito mais abaixo o que é errado, nessa cada de presentation é pra fazer validacao de contrato somente
@@ -53,6 +61,7 @@ public class SignatureController {
         produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<String> validate(@RequestBody ValidateRequest request) {
+        inactivityMonitor.touch();
         try {
             validator.validateValidateRequest(request);
             String result = signatureService.validate(request);
@@ -66,6 +75,7 @@ public class SignatureController {
 
     @GetMapping(value = "/health", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> health() {
+        inactivityMonitor.touch();
         return ResponseEntity.ok("""
             {"status": "UP", "service": "assinador"}
             """);
