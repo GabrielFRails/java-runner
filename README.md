@@ -429,7 +429,7 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 
 | requirement/task/US | status |
 |---|---|
-| Sprint 3 overall | TODO |
+| Sprint 3 overall | WIP |
 | US-02.4 - Endpoints HTTP do assinador.jar | DONE |
 | `SignatureController` implementado com endpoints `POST /sign` e `POST /validate` | DONE |
 | Endpoint `GET /health` disponível para checagem do servidor | DONE |
