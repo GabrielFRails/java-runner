@@ -229,6 +229,9 @@ HTTP `/sign`. Caso contrário, usa o fallback local `java -jar assinador.jar`.
   --cert <arquivo>         \  # Array JSON de certificados base64 DER
   --crypto-type <tipo>     \  # PEM, PKCS12, SMARTCARD ou TOKEN
   --crypto-pem <arquivo>   \  # Chave privada PEM (para --crypto-type PEM)
+  --crypto-pin <pin>       \  # PIN para SMARTCARD/TOKEN
+  --crypto-identifier <id> \  # Alias/identificador para SMARTCARD/TOKEN
+  --pkcs11-library <path>  \  # Biblioteca PKCS#11 para SMARTCARD/TOKEN
   --config <arquivo>           # Configurações operacionais em JSON
 ```
 
@@ -358,6 +361,7 @@ para instruções de verificação.
 - [Especificação FHIR — Validar Assinatura](https://fhir.saude.go.gov.br/r4/seguranca/caso-de-uso-validar-assinatura.html)
 - [Sigstore / Cosign](https://docs.sigstore.dev/cosign/overview/)
 - [HAPI FHIR](https://hapifhir.io/)
+- [Uso de PKCS#11 e SoftHSM2](docs/pkcs11.md)
 
 ## Status atual do projeto:
 
@@ -440,7 +444,7 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 
 | requirement/task/US | status |
 |---|---|
-| Sprint 3 overall | WIP |
+| Sprint 3 overall | DONE |
 | US-02.4 - Endpoints HTTP do assinador.jar | DONE |
 | `SignatureController` implementado com endpoints `POST /sign` e `POST /validate` | DONE |
 | Endpoint `GET /health` disponível para checagem do servidor | DONE |
@@ -471,3 +475,8 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Parâmetro `--timeout <minutos>` define tempo máximo de inatividade | DONE |
 | Após o período sem requisições, `assinador.jar` é encerrado automaticamente | DONE |
 | Mecanismo de timeout é documentado no help do CLI | DONE |
+| US-02.5 - Integração com dispositivo criptográfico via PKCS#11 | DONE |
+| Integração com PKCS#11 via provider `SunPKCS11` | DONE |
+| Comportamento adequado quando dispositivo/biblioteca não está disponível | DONE |
+| Parâmetros PKCS#11 expostos no CLI e no modo HTTP | DONE |
+| Documentação do setup com SoftHSM2 | DONE |
