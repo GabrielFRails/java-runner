@@ -35,7 +35,7 @@ public class SignatureController {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<String> sign(@RequestBody SignRequest request) {
+    public ResponseEntity<String> sign(@RequestBody SignRequest request) { // usar um DTO?
         try {
             validator.validateSignRequest(request);
             String result = signatureService.sign(request);
