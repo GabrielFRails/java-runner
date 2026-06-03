@@ -495,10 +495,12 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Comando `simulador stop` encerra o Simulador | TODO |
 | Comando `simulador status` exibe se o Simulador está em execução ou não | TODO |
 | Informações de processo (PID, porta) são registradas em `~/.hubsaude/` | TODO |
+| Camada de persistência registra o processo `simulador` no banco local | DONE |
 | Encerramento limpo do processo com tratamento adequado de erros | TODO |
 | US-03.3 - Estrutura base do CLI `simulador` em Go | TODO |
 | Projeto CLI `simulador` segue a mesma estrutura do CLI `assinatura` | DONE |
 | Comandos `start`, `stop` e `status` definidos | DONE |
+| Makefile compila o binário `simulador` com `make simulador-build` | DONE |
 | Pipeline CI/CD gera binários multiplataforma do CLI `simulador` | TODO |
 | Binários publicados no GitHub Releases junto com o CLI `assinatura` | TODO |
 | US-03.4 - Obter `simulador.jar` dinamicamente | TODO |
