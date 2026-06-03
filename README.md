@@ -497,8 +497,8 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Informações de processo (PID, porta) são registradas em `~/.hubsaude/` | TODO |
 | Encerramento limpo do processo com tratamento adequado de erros | TODO |
 | US-03.3 - Estrutura base do CLI `simulador` em Go | TODO |
-| Projeto CLI `simulador` segue a mesma estrutura do CLI `assinatura` | TODO |
-| Comandos `start`, `stop` e `status` definidos | TODO |
+| Projeto CLI `simulador` segue a mesma estrutura do CLI `assinatura` | DONE |
+| Comandos `start`, `stop` e `status` definidos | DONE |
 | Pipeline CI/CD gera binários multiplataforma do CLI `simulador` | TODO |
 | Binários publicados no GitHub Releases junto com o CLI `assinatura` | TODO |
 | US-03.4 - Obter `simulador.jar` dinamicamente | TODO |
