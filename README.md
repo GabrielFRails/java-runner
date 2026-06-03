@@ -480,3 +480,31 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Comportamento adequado quando dispositivo/biblioteca não está disponível | DONE |
 | Parâmetros PKCS#11 expostos no CLI e no modo HTTP | DONE |
 | Documentação do setup com SoftHSM2 | DONE |
+
+### Sprint 4
+
+| requirement/task/US | status |
+|---|---|
+| Sprint 4 overall | TODO |
+| US-03.1 - Iniciar o Simulador via CLI | TODO |
+| Comando `simulador start` inicia o `simulador.jar` | TODO |
+| CLI verifica se as portas necessárias estão disponíveis antes de iniciar | TODO |
+| Se o `simulador.jar` não estiver disponível localmente, é baixado automaticamente | TODO |
+| Feedback é exibido ao usuário sobre o status de inicialização | TODO |
+| US-03.2 - Parar e monitorar o Simulador | TODO |
+| Comando `simulador stop` encerra o Simulador | TODO |
+| Comando `simulador status` exibe se o Simulador está em execução ou não | TODO |
+| Informações de processo (PID, porta) são registradas em `~/.hubsaude/` | TODO |
+| Encerramento limpo do processo com tratamento adequado de erros | TODO |
+| US-03.3 - Estrutura base do CLI `simulador` em Go | TODO |
+| Projeto CLI `simulador` segue a mesma estrutura do CLI `assinatura` | TODO |
+| Comandos `start`, `stop` e `status` definidos | TODO |
+| Pipeline CI/CD gera binários multiplataforma do CLI `simulador` | TODO |
+| Binários publicados no GitHub Releases junto com o CLI `assinatura` | TODO |
+| US-03.4 - Obter `simulador.jar` dinamicamente | TODO |
+| CLI consulta GitHub Releases para identificar a versão mais recente do `simulador.jar` | TODO |
+| Download automático quando `simulador.jar` não está disponível localmente | TODO |
+| Opção `--source <url>` permite indicar URL alternativa para download | TODO |
+| Versão já baixada não é baixada novamente (cache local em `~/.hubsaude/`) | TODO |
+| Verificação de integridade do download (checksum) | TODO |
+| Checksum SHA-256 e Sigstore Cosign incorporados no fluxo | TODO |
