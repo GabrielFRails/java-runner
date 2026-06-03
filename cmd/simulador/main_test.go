@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/kyriosdata/assinatura/internal/simulator"
+	"github.com/kyriosdata/assinatura/internal/storage"
 )
 
 func TestRootCommandDefinesLifecycleCommands(t *testing.T) {
@@ -47,5 +50,61 @@ func TestStartCommandAcceptsPortAndSourceFlags(t *testing.T) {
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("expected start command to accept flags, got error: %v", err)
+	}
+}
+
+func TestStatusCommandReportsMissingSimulatorProcess(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Cleanup(storage.Close)
+
+	cmd := newRootCommand()
+	output := &bytes.Buffer{}
+	cmd.SetOut(output)
+	cmd.SetErr(output)
+	cmd.SetArgs([]string{"status"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("expected status command to run, got error: %v", err)
+	}
+
+	got := output.String()
+	if !strings.Contains(got, "Simulador             : não registrado") {
+		t.Fatalf("expected missing simulator status, got:\n%s", got)
+	}
+}
+
+func TestStatusCommandReportsStoredSimulatorProcess(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	if err := storage.EnsureHomeDir(); err != nil {
+		t.Fatalf("EnsureHomeDir failed: %v", err)
+	}
+	if err := storage.InitDatabase(); err != nil {
+		t.Fatalf("InitDatabase failed: %v", err)
+	}
+	if err := simulator.SaveProcess(4321, 18081, "running"); err != nil {
+		t.Fatalf("SaveProcess failed: %v", err)
+	}
+	storage.Close()
+	t.Cleanup(storage.Close)
+
+	cmd := newRootCommand()
+	output := &bytes.Buffer{}
+	cmd.SetOut(output)
+	cmd.SetErr(output)
+	cmd.SetArgs([]string{"status"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("expected status command to run, got error: %v", err)
+	}
+
+	got := output.String()
+	for _, want := range []string{
+		"Simulador             : em execução",
+		"PID                   : 4321",
+		"Porta                 : 18081",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected status output to contain %q, got:\n%s", want, got)
+		}
 	}
 }

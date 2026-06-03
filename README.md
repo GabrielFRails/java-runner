@@ -493,7 +493,7 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Feedback é exibido ao usuário sobre o status de inicialização | TODO |
 | US-03.2 - Parar e monitorar o Simulador | TODO |
 | Comando `simulador stop` encerra o Simulador | TODO |
-| Comando `simulador status` exibe se o Simulador está em execução ou não | TODO |
+| Comando `simulador status` exibe se o Simulador está em execução ou não | DONE |
 | Informações de processo (PID, porta) são registradas em `~/.hubsaude/` | TODO |
 | Camada de persistência registra o processo `simulador` no banco local | DONE |
 | Encerramento limpo do processo com tratamento adequado de erros | TODO |

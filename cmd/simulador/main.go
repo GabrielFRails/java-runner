@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
+	"github.com/kyriosdata/assinatura/internal/simulator"
+	"github.com/kyriosdata/assinatura/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +35,7 @@ func newRootCommand() *cobra.Command {
 		Short: "Inicia o simulador.jar",
 		Long:  "Inicia o simulador.jar como processo gerenciado pelo CLI.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStart(options)
+			return runStart(options, cmd.OutOrStdout())
 		},
 	}
 	startCmd.Flags().IntVar(&options.port, "port", defaultSimulatorPort, "Porta HTTP do Simulador")
@@ -43,7 +46,7 @@ func newRootCommand() *cobra.Command {
 		Short: "Interrompe o Simulador",
 		Long:  "Interrompe uma instância do Simulador gerenciada pelo CLI.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStop(options)
+			return runStop(options, cmd.OutOrStdout())
 		},
 	}
 	stopCmd.Flags().IntVar(&options.port, "port", defaultSimulatorPort, "Porta HTTP do Simulador")
@@ -52,7 +55,7 @@ func newRootCommand() *cobra.Command {
 		Use:   "status",
 		Short: "Exibe o status do Simulador",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStatus(options)
+			return runStatus(cmd.OutOrStdout())
 		},
 	}
 
@@ -68,28 +71,60 @@ func newRootCommand() *cobra.Command {
 	return rootCmd
 }
 
-func runStart(options *simulatorOptions) error {
-	fmt.Printf("simulador start definido (porta: %d)\n", options.port)
+func runStart(options *simulatorOptions, out io.Writer) error {
+	fmt.Fprintf(out, "simulador start definido (porta: %d)\n", options.port)
 	if options.source != "" {
-		fmt.Printf("source   : %s\n", options.source)
+		fmt.Fprintf(out, "source   : %s\n", options.source)
 	}
-	fmt.Println("implementação do ciclo de vida pendente")
+	fmt.Fprintln(out, "implementação do ciclo de vida pendente")
 	return nil
 }
 
-func runStop(options *simulatorOptions) error {
-	fmt.Printf("simulador stop definido (porta: %d)\n", options.port)
-	fmt.Println("implementação do ciclo de vida pendente")
+func runStop(options *simulatorOptions, out io.Writer) error {
+	fmt.Fprintf(out, "simulador stop definido (porta: %d)\n", options.port)
+	fmt.Fprintln(out, "implementação do ciclo de vida pendente")
 	return nil
 }
 
-func runStatus(options *simulatorOptions) error {
-	fmt.Println("simulador status definido")
-	fmt.Println("implementação do ciclo de vida pendente")
+func runStatus(out io.Writer) error {
+	if err := storage.EnsureHomeDir(); err != nil {
+		return err
+	}
+	if err := storage.InitDatabase(); err != nil {
+		return err
+	}
+
+	homeDir, err := storage.HomeDir()
+	if err != nil {
+		return err
+	}
+	process, err := simulator.GetProcess()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(out, "Diretório de trabalho : %s\n", homeDir)
+	if process == nil {
+		fmt.Fprintln(out, "Simulador             : não registrado")
+		return nil
+	}
+
+	switch process.Status {
+	case "running":
+		fmt.Fprintln(out, "Simulador             : em execução")
+	case "stopped":
+		fmt.Fprintln(out, "Simulador             : parado")
+	default:
+		fmt.Fprintf(out, "Simulador             : %s\n", process.Status)
+	}
+	fmt.Fprintf(out, "PID                   : %d\n", process.PID)
+	fmt.Fprintf(out, "Porta                 : %d\n", process.Port)
 	return nil
 }
 
 func main() {
+	defer storage.Close()
+
 	if err := newRootCommand().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
