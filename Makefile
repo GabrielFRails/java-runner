@@ -1,6 +1,7 @@
 SHELL := /bin/zsh
 
 APP_NAME := assinatura
+SIMULADOR_APP_NAME := simulador
 GO_CMD := go
 MVN_CMD := mvn
 JAVA_DIR := assinador
@@ -15,12 +16,13 @@ TMP_KEY := /tmp/key.pem
 SIGN_POLICY := https://fhir.saude.go.gov.br/r4/seguranca/ImplementationGuide/br.go.ses.seguranca|0.1.2
 TEST_CERT_BASE64 := MIIDEzCCAfugAwIBAgIUIpafd10rpjmI4ug26Rzbv55qFp4wDQYJKoZIhvcNAQELBQAwGTEXMBUGA1UEAwwOQXNzaW5hZG9yIFRlc3QwHhcNMjYwNDAyMDEzMTQyWhcNMjYwNDAzMDEzMTQyWjAZMRcwFQYDVQQDDA5Bc3NpbmFkb3IgVGVzdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJpCscpAJ8WS2EmQmLUZeFQzDPUxEgx+rHNRGdNzsSPGSX+U/PBbI1qJIZI0m3J8jCGmCyVoPZpmsMEQBy7v4pA+KqDdQYXsNZJbwCZWNDCycJp5qoOH4TbhrLcjli+eAwd41eLwMgriLkw2DiOykaP1C9L1n4VlAPMNBsUV7I3ZcwIDjvZ78veu/MKobmVzyp/DlRZ5FtXzBADaQl4TiZfsUUBTp+F4//Ew5FNBii5Ti6iA3lktnsH5G1pKDzvQDe6gr2a4zSXUpq7aBMR8fbeHpcJFtV2GeHJrhHVNZzqgW0X1VjuP0oBmr+nJU0GfHqHcSVScs8+ZHzum/CvuGnECAwEAAaNTMFEwHQYDVR0OBBYEFJWuXTtR46jX7IQZLMkFOZSDao78MB8GA1UdIwQYMBaAFJWuXTtR46jX7IQZLMkFOZSDao78MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBABm134KBnybk7z5wkwZCKW273brHVAq459Npq8x603mbHvssJQNXpUFjU1tEB9vxqvbYroElPoxUPSWFLIOPF9+nx23q+juQiTAYr4IvyEs3UD75WWjRoHZQv5s1GMhvmZ4Ed/l8Nh9tNM6+qQyyfs2nhIKBjEfIJcQIA77hemfslBT/P8UADHL5onZXhOhdCswS9RdamKPZ4zYwTFClCfOO8wiFZ6jTw73dpF1A1J87Kg9gUUP0ilIkhG/867BJxJWHqFT6wAGcMeM7yKQZAvvr4GGqWsMett03zbpkiITIVWDJbt/kpjpoA00t2J+6vR0EZKJnEvTxEZwzfQBM0eA=
 
-.PHONY: help go-deps go-build go-test java-test java-build java-run sync-jar sample-files sample-sign build test clean version status xtudao test-integration-local test-integration-server
+.PHONY: help go-deps go-build simulador-build go-test java-test java-build java-run sync-jar sample-files sample-sign build test clean version status simulador-version xtudao test-integration-local test-integration-server
 
 help:
 	@echo "Alvos disponíveis:"
 	@echo "  make go-deps    - instala/atualiza dependências Go do projeto"
 	@echo "  make go-build   - compila o CLI Go na raiz do repositório"
+	@echo "  make simulador-build - compila o CLI simulador na raiz do repositório"
 	@echo "  make go-test    - executa os testes Go"
 	@echo "  make java-test  - executa os testes do assinador Java"
 	@echo "  make java-build - gera o jar do assinador"
@@ -28,12 +30,13 @@ help:
 	@echo "  make sync-jar   - copia o jar gerado para ./assinador.jar"
 	@echo "  make sample-files - cria os arquivos de teste do exemplo em /tmp"
 	@echo "  make sample-sign  - executa o exemplo completo de assinatura pela CLI"
-	@echo "  make build      - build completo: Java + Go + cópia do jar"
+	@echo "  make build      - build completo: Java + CLIs Go + cópia do jar"
 	@echo "  make test       - executa testes Java e Go"
 	@echo "  make test-integration-local - valida o fluxo CLI -> java -jar -> assinador.jar"
 	@echo "  make test-integration-server - valida start/sign/validate/stop via servidor gerenciado"
 	@echo "  make xtudao     - build, testes, API no ar e fluxo completo via CLI e HTTP"
 	@echo "  make version    - executa ./assinatura version"
+	@echo "  make simulador-version - executa ./simulador version"
 	@echo "  make status     - executa ./assinatura status"
 	@echo "  make clean      - remove artefatos locais de build"
 
@@ -45,6 +48,9 @@ go-deps:
 
 go-build:
 	$(GO_CMD) build -o $(APP_NAME) ./cmd/assinatura
+
+simulador-build:
+	$(GO_CMD) build -o $(SIMULADOR_APP_NAME) ./cmd/simulador
 
 go-test:
 	$(GO_CMD) test ./...
@@ -92,7 +98,7 @@ sample-sign: build sample-files
 		--crypto-pem $(TMP_KEY) \
 		--config $(TMP_CONFIG)
 
-build: java-build go-build sync-jar
+build: java-build go-build simulador-build sync-jar
 
 test: java-test go-test
 
@@ -108,9 +114,12 @@ xtudao: build test sample-files
 version: go-build
 	./$(APP_NAME) version
 
+simulador-version: simulador-build
+	./$(SIMULADOR_APP_NAME) version
+
 status: build
 	./$(APP_NAME) status
 
 clean:
-	rm -f $(APP_NAME) $(ROOT_JAR)
+	rm -f $(APP_NAME) $(SIMULADOR_APP_NAME) $(ROOT_JAR)
 	rm -rf $(JAVA_TARGET_DIR)
