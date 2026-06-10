@@ -492,11 +492,11 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Se o `simulador.jar` não estiver disponível localmente, é baixado automaticamente | TODO |
 | Feedback é exibido ao usuário sobre o status de inicialização | TODO |
 | US-03.2 - Parar e monitorar o Simulador | TODO |
-| Comando `simulador stop` encerra o Simulador | TODO |
+| Comando `simulador stop` encerra o Simulador | DONE |
 | Comando `simulador status` exibe se o Simulador está em execução ou não | DONE |
 | Informações de processo (PID, porta) são registradas em `~/.hubsaude/` | TODO |
 | Camada de persistência registra o processo `simulador` no banco local | DONE |
-| Encerramento limpo do processo com tratamento adequado de erros | TODO |
+| Encerramento limpo do processo com tratamento adequado de erros | DONE |
 | US-03.3 - Estrutura base do CLI `simulador` em Go | TODO |
 | Projeto CLI `simulador` segue a mesma estrutura do CLI `assinatura` | DONE |
 | Comandos `start`, `stop` e `status` definidos | DONE |
