@@ -72,7 +72,12 @@ func newRootCommand() *cobra.Command {
 }
 
 func runStart(options *simulatorOptions, out io.Writer) error {
+	if err := simulator.EnsurePortAvailable(options.port); err != nil {
+		return err
+	}
+
 	fmt.Fprintf(out, "simulador start definido (porta: %d)\n", options.port)
+	fmt.Fprintln(out, "Porta    : disponível")
 	if options.source != "" {
 		fmt.Fprintf(out, "source   : %s\n", options.source)
 	}
