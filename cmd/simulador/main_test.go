@@ -53,6 +53,26 @@ func TestStartCommandAcceptsPortAndSourceFlags(t *testing.T) {
 	}
 }
 
+func TestStopCommandReportsMissingSimulatorProcess(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Cleanup(storage.Close)
+
+	cmd := newRootCommand()
+	output := &bytes.Buffer{}
+	cmd.SetOut(output)
+	cmd.SetErr(output)
+	cmd.SetArgs([]string{"stop", "--port", "18081"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("expected stop command to run, got error: %v", err)
+	}
+
+	got := output.String()
+	if !strings.Contains(got, "nenhuma instância gerenciada do simulador.jar encontrada na porta 18081") {
+		t.Fatalf("expected missing simulator stop message, got:\n%s", got)
+	}
+}
+
 func TestStatusCommandReportsMissingSimulatorProcess(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Cleanup(storage.Close)

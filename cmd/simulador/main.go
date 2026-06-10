@@ -81,8 +81,25 @@ func runStart(options *simulatorOptions, out io.Writer) error {
 }
 
 func runStop(options *simulatorOptions, out io.Writer) error {
-	fmt.Fprintf(out, "simulador stop definido (porta: %d)\n", options.port)
-	fmt.Fprintln(out, "implementação do ciclo de vida pendente")
+	if err := storage.EnsureHomeDir(); err != nil {
+		return err
+	}
+	if err := storage.InitDatabase(); err != nil {
+		return err
+	}
+
+	result, err := simulator.Stop(options.port)
+	if err != nil {
+		return err
+	}
+	if !result.Stopped {
+		fmt.Fprintf(out, "nenhuma instância gerenciada do simulador.jar encontrada na porta %d\n", options.port)
+		return nil
+	}
+
+	fmt.Fprintln(out, "simulador.jar interrompido")
+	fmt.Fprintf(out, "PID      : %d\n", result.PID)
+	fmt.Fprintf(out, "Porta    : %d\n", result.Port)
 	return nil
 }
 
