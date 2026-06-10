@@ -497,6 +497,7 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Informações de processo (PID, porta) são registradas em `~/.hubsaude/` | TODO |
 | Camada de persistência registra o processo `simulador` no banco local | DONE |
 | Encerramento limpo do processo com tratamento adequado de erros | DONE |
+| Testes unitários cobrem o ciclo de vida básico do Simulador | DONE |
 | US-03.3 - Estrutura base do CLI `simulador` em Go | TODO |
 | Projeto CLI `simulador` segue a mesma estrutura do CLI `assinatura` | DONE |
 | Comandos `start`, `stop` e `status` definidos | DONE |
