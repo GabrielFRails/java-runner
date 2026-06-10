@@ -32,14 +32,14 @@ func newRootCommand() *cobra.Command {
 
 	startCmd := &cobra.Command{
 		Use:   "start",
-		Short: "Inicia o simulador.jar",
-		Long:  "Inicia o simulador.jar como processo gerenciado pelo CLI.",
+		Short: "Inicia o simulador",
+		Long:  "Inicia o binário do simulador como processo gerenciado pelo CLI.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runStart(options, cmd.OutOrStdout())
 		},
 	}
 	startCmd.Flags().IntVar(&options.port, "port", defaultSimulatorPort, "Porta HTTP do Simulador")
-	startCmd.Flags().StringVar(&options.source, "source", "", "URL alternativa para baixar o simulador.jar")
+	startCmd.Flags().StringVar(&options.source, "source", "", "URL alternativa para baixar o artefato do simulador")
 
 	stopCmd := &cobra.Command{
 		Use:   "stop",
@@ -76,7 +76,7 @@ func runStart(options *simulatorOptions, out io.Writer) error {
 		return err
 	}
 
-	jarResult, err := simulator.EnsureJar(options.source)
+	artifactResult, err := simulator.EnsureArtifact(options.source)
 	if err != nil {
 		return err
 	}
@@ -86,13 +86,13 @@ func runStart(options *simulatorOptions, out io.Writer) error {
 	if options.source != "" {
 		fmt.Fprintf(out, "source   : %s\n", options.source)
 	}
-	if jarResult.Downloaded {
-		fmt.Fprintf(out, "JAR      : baixado em %s\n", jarResult.Path)
-		if jarResult.Version != "" {
-			fmt.Fprintf(out, "Release  : %s\n", jarResult.Version)
+	if artifactResult.Downloaded {
+		fmt.Fprintf(out, "Artefato : baixado em %s\n", artifactResult.Path)
+		if artifactResult.Version != "" {
+			fmt.Fprintf(out, "Release  : %s\n", artifactResult.Version)
 		}
 	} else {
-		fmt.Fprintf(out, "JAR      : %s\n", jarResult.Path)
+		fmt.Fprintf(out, "Artefato : %s\n", artifactResult.Path)
 	}
 	fmt.Fprintln(out, "implementação do ciclo de vida pendente")
 	return nil
@@ -111,11 +111,11 @@ func runStop(options *simulatorOptions, out io.Writer) error {
 		return err
 	}
 	if !result.Stopped {
-		fmt.Fprintf(out, "nenhuma instância gerenciada do simulador.jar encontrada na porta %d\n", options.port)
+		fmt.Fprintf(out, "nenhuma instância gerenciada do simulador encontrada na porta %d\n", options.port)
 		return nil
 	}
 
-	fmt.Fprintln(out, "simulador.jar interrompido")
+	fmt.Fprintln(out, "simulador interrompido")
 	fmt.Fprintf(out, "PID      : %d\n", result.PID)
 	fmt.Fprintf(out, "Porta    : %d\n", result.Port)
 	return nil

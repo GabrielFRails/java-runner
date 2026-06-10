@@ -51,17 +51,17 @@ func TestStartCommandAcceptsPortAndSourceFlags(t *testing.T) {
 		t.Fatalf("failed to locate test executable: %v", err)
 	}
 	execDir := filepath.Dir(execPath)
-	jarPath := filepath.Join(execDir, "simulador.jar")
-	if err := os.Remove(jarPath); err != nil && !os.IsNotExist(err) {
-		t.Fatalf("failed to remove stale test jar: %v", err)
+	artifactPath := filepath.Join(execDir, "simulador-managed")
+	if err := os.Remove(artifactPath); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("failed to remove stale test artifact: %v", err)
 	}
 	t.Cleanup(func() {
-		_ = os.Remove(jarPath)
+		_ = os.Remove(artifactPath)
 	})
 
 	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("fake simulator jar"))
+		_, _ = w.Write([]byte("fake simulator artifact"))
 	}))
 	defer source.Close()
 
@@ -69,18 +69,18 @@ func TestStartCommandAcceptsPortAndSourceFlags(t *testing.T) {
 	output := &bytes.Buffer{}
 	cmd.SetOut(output)
 	cmd.SetErr(output)
-	cmd.SetArgs([]string{"start", "--port", "18081", "--source", source.URL + "/simulador.jar"})
+	cmd.SetArgs([]string{"start", "--port", "18081", "--source", source.URL + "/simulador"})
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("expected start command to accept flags, got error: %v", err)
 	}
 
-	got, err := os.ReadFile(filepath.Join(execDir, "simulador.jar"))
+	got, err := os.ReadFile(artifactPath)
 	if err != nil {
-		t.Fatalf("expected simulador.jar to be downloaded: %v", err)
+		t.Fatalf("expected simulator artifact to be downloaded: %v", err)
 	}
-	if string(got) != "fake simulator jar" {
-		t.Fatalf("unexpected downloaded jar content: %q", got)
+	if string(got) != "fake simulator artifact" {
+		t.Fatalf("unexpected downloaded artifact content: %q", got)
 	}
 }
 
@@ -118,7 +118,7 @@ func TestStopCommandReportsMissingSimulatorProcess(t *testing.T) {
 	}
 
 	got := output.String()
-	if !strings.Contains(got, "nenhuma instância gerenciada do simulador.jar encontrada na porta 18081") {
+	if !strings.Contains(got, "nenhuma instância gerenciada do simulador encontrada na porta 18081") {
 		t.Fatalf("expected missing simulator stop message, got:\n%s", got)
 	}
 }

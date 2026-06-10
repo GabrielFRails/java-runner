@@ -25,7 +25,7 @@ func EnsurePortAvailable(port int) error {
 		return err
 	}
 	if !available {
-		return fmt.Errorf("porta %d indisponível para iniciar o simulador.jar", port)
+		return fmt.Errorf("porta %d indisponível para iniciar o simulador", port)
 	}
 	return nil
 }

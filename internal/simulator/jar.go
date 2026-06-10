@@ -10,10 +10,12 @@ import (
 	"time"
 )
 
-const simulatorJarName = "simulador.jar"
 const defaultLatestReleaseURL = "https://api.github.com/repos/GabrielFRails/java-runner/releases/latest" // deixar mocado mesmo já que o repo é meu hehe
+const simulatorReleaseAssetOS = "darwin"                                                                 // [TODO] detectar com runtime.GOOS.
+const simulatorReleaseAssetArch = "arm64"                                                                // [TODO] detectar com runtime.GOARCH.
+const localSimulatorArtifactName = "simulador-managed"
 
-type JarResult struct {
+type ArtifactResult struct {
 	Path       string
 	Downloaded bool
 	SourceURL  string
@@ -21,7 +23,7 @@ type JarResult struct {
 }
 
 var executablePathFn = os.Executable
-var jarHTTPClient = &http.Client{Timeout: 2 * time.Minute}
+var artifactHTTPClient = &http.Client{Timeout: 2 * time.Minute}
 var latestReleaseURL = defaultLatestReleaseURL
 
 type githubRelease struct {
@@ -32,86 +34,89 @@ type githubRelease struct {
 	} `json:"assets"`
 }
 
-func LocateJar() (string, error) {
+func LocateArtifact() (string, error) {
 	execPath, err := executablePathFn()
 	if err != nil {
 		return "", fmt.Errorf("não foi possível localizar o executável simulador: %w", err)
 	}
 
-	return filepath.Join(filepath.Dir(execPath), simulatorJarName), nil
+	return filepath.Join(filepath.Dir(execPath), localSimulatorArtifactName), nil
 }
 
-func EnsureJar(sourceURL string) (*JarResult, error) {
-	jarPath, err := LocateJar()
+func EnsureArtifact(sourceURL string) (*ArtifactResult, error) {
+	artifactPath, err := LocateArtifact()
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := os.Stat(jarPath); err == nil {
-		return &JarResult{Path: jarPath}, nil
+	if _, err := os.Stat(artifactPath); err == nil {
+		return &ArtifactResult{Path: artifactPath}, nil
 	} else if !os.IsNotExist(err) {
-		return nil, fmt.Errorf("não foi possível verificar %s: %w", simulatorJarName, err)
+		return nil, fmt.Errorf("não foi possível verificar artefato local do simulador: %w", err)
 	}
 
 	if sourceURL == "" {
-		assetURL, version, err := latestSimulatorJarAsset()
+		assetURL, version, err := latestSimulatorReleaseAsset()
 		if err != nil {
 			return nil, err
 		}
 		sourceURL = assetURL
 
-		if err := downloadJar(sourceURL, jarPath); err != nil {
+		if err := downloadArtifact(sourceURL, artifactPath); err != nil {
 			return nil, err
 		}
 
-		return &JarResult{Path: jarPath, Downloaded: true, SourceURL: sourceURL, Version: version}, nil
+		return &ArtifactResult{Path: artifactPath, Downloaded: true, SourceURL: sourceURL, Version: version}, nil
 	}
 
-	if err := downloadJar(sourceURL, jarPath); err != nil {
+	if err := downloadArtifact(sourceURL, artifactPath); err != nil {
 		return nil, err
 	}
 
-	return &JarResult{Path: jarPath, Downloaded: true, SourceURL: sourceURL}, nil
+	return &ArtifactResult{Path: artifactPath, Downloaded: true, SourceURL: sourceURL}, nil
 }
 
-func downloadJar(sourceURL string, dest string) error {
+func downloadArtifact(sourceURL string, dest string) error {
 	resp, err := getURL(sourceURL)
 	if err != nil {
-		return fmt.Errorf("erro ao baixar %s: %w", simulatorJarName, err)
+		return fmt.Errorf("erro ao baixar artefato do simulador: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("download de %s retornou status %d", simulatorJarName, resp.StatusCode)
+		return fmt.Errorf("download do artefato do simulador retornou status %d", resp.StatusCode)
 	}
 
 	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
-		return fmt.Errorf("não foi possível criar diretório para %s: %w", simulatorJarName, err)
+		return fmt.Errorf("não foi possível criar diretório para artefato do simulador: %w", err)
 	}
 
-	tmp, err := os.CreateTemp(filepath.Dir(dest), simulatorJarName+".*.tmp")
+	tmp, err := os.CreateTemp(filepath.Dir(dest), localSimulatorArtifactName+".*.tmp")
 	if err != nil {
-		return fmt.Errorf("não foi possível criar arquivo temporário para %s: %w", simulatorJarName, err)
+		return fmt.Errorf("não foi possível criar arquivo temporário para artefato do simulador: %w", err)
 	}
 	tmpPath := tmp.Name()
 	defer os.Remove(tmpPath)
 
 	if _, err := io.Copy(tmp, resp.Body); err != nil {
 		tmp.Close()
-		return fmt.Errorf("não foi possível salvar download de %s: %w", simulatorJarName, err)
+		return fmt.Errorf("não foi possível salvar download do artefato do simulador: %w", err)
 	}
 	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("não foi possível fechar download de %s: %w", simulatorJarName, err)
+		return fmt.Errorf("não foi possível fechar download do artefato do simulador: %w", err)
 	}
 
 	if err := os.Rename(tmpPath, dest); err != nil {
-		return fmt.Errorf("não foi possível instalar %s: %w", simulatorJarName, err)
+		return fmt.Errorf("não foi possível instalar artefato do simulador: %w", err)
+	}
+	if err := os.Chmod(dest, 0o755); err != nil {
+		return fmt.Errorf("não foi possível tornar artefato do simulador executável: %w", err)
 	}
 
 	return nil
 }
 
-func latestSimulatorJarAsset() (string, string, error) {
+func latestSimulatorReleaseAsset() (string, string, error) {
 	resp, err := getURL(latestReleaseURL)
 	if err != nil {
 		return "", "", fmt.Errorf("erro ao consultar GitHub Releases: %w", err)
@@ -130,16 +135,26 @@ func latestSimulatorJarAsset() (string, string, error) {
 		return "", "", fmt.Errorf("resposta inválida do GitHub Releases: %w", err)
 	}
 
+	assetName := simulatorReleaseAssetName(release.TagName)
 	for _, asset := range release.Assets {
-		if asset.Name == simulatorJarName && asset.BrowserDownloadURL != "" {
+		if asset.Name == assetName && asset.BrowserDownloadURL != "" {
 			return asset.BrowserDownloadURL, release.TagName, nil
 		}
 	}
 
 	if release.TagName == "" {
-		return "", "", fmt.Errorf("asset %s não encontrado na release mais recente", simulatorJarName)
+		return "", "", fmt.Errorf("asset do simulador não encontrado na release mais recente")
 	}
-	return "", "", fmt.Errorf("asset %s não encontrado na release %s", simulatorJarName, release.TagName)
+	return "", "", fmt.Errorf("asset %s não encontrado na release %s", assetName, release.TagName)
+}
+
+func simulatorReleaseAssetName(tagName string) string {
+	return fmt.Sprintf(
+		"simulador-%s-%s-%s",
+		tagName,
+		simulatorReleaseAssetOS,
+		simulatorReleaseAssetArch,
+	)
 }
 
 func getURL(rawURL string) (*http.Response, error) {
@@ -149,5 +164,5 @@ func getURL(rawURL string) (*http.Response, error) {
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("User-Agent", "hubsaude-simulador-cli")
-	return jarHTTPClient.Do(req)
+	return artifactHTTPClient.Do(req)
 }

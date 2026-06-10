@@ -30,7 +30,7 @@ func Stop(port int) (*StopResult, error) {
 
 	if process.PID > 0 {
 		if err := terminateProcessFn(process.PID); err != nil {
-			return nil, fmt.Errorf("erro ao encerrar simulador.jar com PID %d: %w", process.PID, err)
+			return nil, fmt.Errorf("erro ao encerrar simulador com PID %d: %w", process.PID, err)
 		}
 	}
 

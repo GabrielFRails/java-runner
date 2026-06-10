@@ -30,30 +30,30 @@ func withLatestReleaseURLStub(t *testing.T, url string) {
 	})
 }
 
-func TestEnsureJarReturnsExistingLocalJar(t *testing.T) {
+func TestEnsureArtifactReturnsExistingLocalArtifact(t *testing.T) {
 	dir := t.TempDir()
-	jarPath := filepath.Join(dir, simulatorJarName)
+	artifactPath := filepath.Join(dir, localSimulatorArtifactName)
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
 
-	if err := os.WriteFile(jarPath, []byte("existing"), 0o644); err != nil {
-		t.Fatalf("failed to create local jar: %v", err)
+	if err := os.WriteFile(artifactPath, []byte("existing"), 0o644); err != nil {
+		t.Fatalf("failed to create local artifact: %v", err)
 	}
 
-	result, err := EnsureJar("")
+	result, err := EnsureArtifact("")
 	if err != nil {
-		t.Fatalf("EnsureJar failed: %v", err)
+		t.Fatalf("EnsureArtifact failed: %v", err)
 	}
-	if result.Path != jarPath {
-		t.Fatalf("expected path %q, got %q", jarPath, result.Path)
+	if result.Path != artifactPath {
+		t.Fatalf("expected path %q, got %q", artifactPath, result.Path)
 	}
 	if result.Downloaded {
-		t.Fatal("expected existing jar not to be marked as downloaded")
+		t.Fatal("expected existing artifact not to be marked as downloaded")
 	}
 }
 
-func TestEnsureJarDownloadsFromSourceWhenMissing(t *testing.T) {
+func TestEnsureArtifactDownloadsFromSourceWhenMissing(t *testing.T) {
 	dir := t.TempDir()
-	jarPath := filepath.Join(dir, simulatorJarName)
+	artifactPath := filepath.Join(dir, localSimulatorArtifactName)
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
 
 	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -62,39 +62,39 @@ func TestEnsureJarDownloadsFromSourceWhenMissing(t *testing.T) {
 	}))
 	defer source.Close()
 
-	result, err := EnsureJar(source.URL + "/simulador.jar")
+	result, err := EnsureArtifact(source.URL + "/simulador")
 	if err != nil {
-		t.Fatalf("EnsureJar failed: %v", err)
+		t.Fatalf("EnsureArtifact failed: %v", err)
 	}
-	if result.Path != jarPath {
-		t.Fatalf("expected path %q, got %q", jarPath, result.Path)
+	if result.Path != artifactPath {
+		t.Fatalf("expected path %q, got %q", artifactPath, result.Path)
 	}
 	if !result.Downloaded {
-		t.Fatal("expected missing jar to be downloaded")
+		t.Fatal("expected missing artifact to be downloaded")
 	}
 
-	got, err := os.ReadFile(jarPath)
+	got, err := os.ReadFile(artifactPath)
 	if err != nil {
-		t.Fatalf("expected downloaded jar to exist: %v", err)
+		t.Fatalf("expected downloaded artifact to exist: %v", err)
 	}
 	if string(got) != "downloaded" {
 		t.Fatalf("unexpected downloaded content: %q", got)
 	}
 }
 
-func TestEnsureJarReportsLatestReleaseLookupFailure(t *testing.T) {
+func TestEnsureArtifactReportsLatestReleaseLookupFailure(t *testing.T) {
 	dir := t.TempDir()
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
 	withLatestReleaseURLStub(t, "://invalid")
 
-	if _, err := EnsureJar(""); err == nil {
-		t.Fatal("expected missing jar without source to fail")
+	if _, err := EnsureArtifact(""); err == nil {
+		t.Fatal("expected missing artifact without source to fail")
 	}
 }
 
-func TestEnsureJarDownloadsFromLatestGitHubReleaseWhenSourceIsMissing(t *testing.T) {
+func TestEnsureArtifactDownloadsFromLatestGitHubReleaseWhenSourceIsMissing(t *testing.T) {
 	dir := t.TempDir()
-	jarPath := filepath.Join(dir, simulatorJarName)
+	artifactPath := filepath.Join(dir, localSimulatorArtifactName)
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
 
 	var serverURL string
@@ -106,10 +106,10 @@ func TestEnsureJarDownloadsFromLatestGitHubReleaseWhenSourceIsMissing(t *testing
 				"tag_name": "v1.2.3",
 				"assets": [
 					{"name": "other.jar", "browser_download_url": "` + serverURL + `/other.jar"},
-					{"name": "simulador.jar", "browser_download_url": "` + serverURL + `/simulador.jar"}
+					{"name": "simulador-v1.2.3-darwin-arm64", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64"}
 				]
 			}`))
-		case "/simulador.jar":
+		case "/simulador-v1.2.3-darwin-arm64":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("from latest release"))
 		default:
@@ -120,30 +120,30 @@ func TestEnsureJarDownloadsFromLatestGitHubReleaseWhenSourceIsMissing(t *testing
 	defer server.Close()
 	withLatestReleaseURLStub(t, server.URL+"/repos/example/project/releases/latest")
 
-	result, err := EnsureJar("")
+	result, err := EnsureArtifact("")
 	if err != nil {
-		t.Fatalf("EnsureJar failed: %v", err)
+		t.Fatalf("EnsureArtifact failed: %v", err)
 	}
 	if !result.Downloaded {
-		t.Fatal("expected jar to be downloaded")
+		t.Fatal("expected artifact to be downloaded")
 	}
 	if result.Version != "v1.2.3" {
 		t.Fatalf("expected version v1.2.3, got %q", result.Version)
 	}
-	if result.SourceURL != server.URL+"/simulador.jar" {
+	if result.SourceURL != server.URL+"/simulador-v1.2.3-darwin-arm64" {
 		t.Fatalf("unexpected source URL: %q", result.SourceURL)
 	}
 
-	got, err := os.ReadFile(jarPath)
+	got, err := os.ReadFile(artifactPath)
 	if err != nil {
-		t.Fatalf("expected downloaded jar to exist: %v", err)
+		t.Fatalf("expected downloaded artifact to exist: %v", err)
 	}
 	if string(got) != "from latest release" {
 		t.Fatalf("unexpected downloaded content: %q", got)
 	}
 }
 
-func TestEnsureJarReportsMissingAssetInLatestRelease(t *testing.T) {
+func TestEnsureArtifactReportsMissingAssetInLatestRelease(t *testing.T) {
 	dir := t.TempDir()
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
 
@@ -154,12 +154,12 @@ func TestEnsureJarReportsMissingAssetInLatestRelease(t *testing.T) {
 	defer server.Close()
 	withLatestReleaseURLStub(t, server.URL)
 
-	if _, err := EnsureJar(""); err == nil {
+	if _, err := EnsureArtifact(""); err == nil {
 		t.Fatal("expected missing release asset to fail")
 	}
 }
 
-func TestEnsureJarReportsInvalidLatestReleaseJSON(t *testing.T) {
+func TestEnsureArtifactReportsInvalidLatestReleaseJSON(t *testing.T) {
 	dir := t.TempDir()
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
 
@@ -170,7 +170,7 @@ func TestEnsureJarReportsInvalidLatestReleaseJSON(t *testing.T) {
 	defer server.Close()
 	withLatestReleaseURLStub(t, server.URL)
 
-	if _, err := EnsureJar(""); err == nil {
+	if _, err := EnsureArtifact(""); err == nil {
 		t.Fatal("expected invalid release JSON to fail")
 	}
 }
