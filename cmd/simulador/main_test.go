@@ -3,6 +3,10 @@ package main
 import (
 	"bytes"
 	"net"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -42,16 +46,41 @@ func TestVersionCommandPrintsCurrentVersion(t *testing.T) {
 }
 
 func TestStartCommandAcceptsPortAndSourceFlags(t *testing.T) {
-	t.Parallel()
+	execPath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("failed to locate test executable: %v", err)
+	}
+	execDir := filepath.Dir(execPath)
+	jarPath := filepath.Join(execDir, "simulador.jar")
+	if err := os.Remove(jarPath); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("failed to remove stale test jar: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Remove(jarPath)
+	})
+
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("fake simulator jar"))
+	}))
+	defer source.Close()
 
 	cmd := newRootCommand()
 	output := &bytes.Buffer{}
 	cmd.SetOut(output)
 	cmd.SetErr(output)
-	cmd.SetArgs([]string{"start", "--port", "18081", "--source", "https://example.com/simulador.jar"})
+	cmd.SetArgs([]string{"start", "--port", "18081", "--source", source.URL + "/simulador.jar"})
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("expected start command to accept flags, got error: %v", err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(execDir, "simulador.jar"))
+	if err != nil {
+		t.Fatalf("expected simulador.jar to be downloaded: %v", err)
+	}
+	if string(got) != "fake simulator jar" {
+		t.Fatalf("unexpected downloaded jar content: %q", got)
 	}
 }
 
