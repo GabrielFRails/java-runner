@@ -488,7 +488,7 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Sprint 4 overall | TODO |
 | US-03.1 - Iniciar o Simulador via CLI | TODO |
 | Comando `simulador start` inicia o `simulador.jar` | TODO |
-| CLI verifica se as portas necessárias estão disponíveis antes de iniciar | TODO |
+| CLI verifica se as portas necessárias estão disponíveis antes de iniciar | DONE |
 | Se o `simulador.jar` não estiver disponível localmente, é baixado automaticamente | TODO |
 | Feedback é exibido ao usuário sobre o status de inicialização | TODO |
 | US-03.2 - Parar e monitorar o Simulador | TODO |
