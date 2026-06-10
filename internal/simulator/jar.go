@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const simulatorJarName = "assinatura-v0.2.0-darwin-arm64"
+const simulatorJarName = "simulador.jar"
 const defaultLatestReleaseURL = "https://api.github.com/repos/GabrielFRails/java-runner/releases/latest" // deixar mocado mesmo já que o repo é meu hehe
 
 type JarResult struct {
