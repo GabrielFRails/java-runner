@@ -17,18 +17,46 @@ jobs:
     strategy:
       matrix:
         include:
-          - goos: linux
+          - app: assinatura
+            package: ./cmd/assinatura
+            goos: linux
             goarch: amd64
             output: assinatura-${{ github.ref_name }}-linux-amd64
-          - goos: windows
+          - app: assinatura
+            package: ./cmd/assinatura
+            goos: windows
             goarch: amd64
             output: assinatura-${{ github.ref_name }}-windows-amd64.exe
-          - goos: darwin
+          - app: assinatura
+            package: ./cmd/assinatura
+            goos: darwin
             goarch: amd64
             output: assinatura-${{ github.ref_name }}-darwin-amd64
-          - goos: darwin
+          - app: assinatura
+            package: ./cmd/assinatura
+            goos: darwin
             goarch: arm64
             output: assinatura-${{ github.ref_name }}-darwin-arm64
+          - app: simulador
+            package: ./cmd/simulador
+            goos: linux
+            goarch: amd64
+            output: simulador-${{ github.ref_name }}-linux-amd64
+          - app: simulador
+            package: ./cmd/simulador
+            goos: windows
+            goarch: amd64
+            output: simulador-${{ github.ref_name }}-windows-amd64.exe
+          - app: simulador
+            package: ./cmd/simulador
+            goos: darwin
+            goarch: amd64
+            output: simulador-${{ github.ref_name }}-darwin-amd64
+          - app: simulador
+            package: ./cmd/simulador
+            goos: darwin
+            goarch: arm64
+            output: simulador-${{ github.ref_name }}-darwin-arm64
 
     steps:
       - name: Checkout
@@ -47,7 +75,7 @@ jobs:
           go build \
             -ldflags "-X main.version=${{ github.ref_name }}" \
             -o ${{ matrix.output }} \
-            ./cmd/assinatura
+            ${{ matrix.package }}
 
       - name: Gerar checksum SHA256
         run: sha256sum ${{ matrix.output }} >> checksums.txt
@@ -97,5 +125,6 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}  # v1.0.0-beta vira prerelease
           files: |
             artifacts/assinatura-*
+            artifacts/simulador-*
             checksums.txt
           generate_release_notes: true  # gera notas automáticas a partir dos commits

@@ -14,18 +14,46 @@ jobs:
     strategy:
       matrix:
         include:
-          - goos: linux
+          - app: assinatura
+            package: ./cmd/assinatura
+            goos: linux
             goarch: amd64
             output: assinatura-linux-amd64
-          - goos: windows
+          - app: assinatura
+            package: ./cmd/assinatura
+            goos: windows
             goarch: amd64
             output: assinatura-windows-amd64.exe
-          - goos: darwin
+          - app: assinatura
+            package: ./cmd/assinatura
+            goos: darwin
             goarch: amd64
             output: assinatura-darwin-amd64
-          - goos: darwin
+          - app: assinatura
+            package: ./cmd/assinatura
+            goos: darwin
             goarch: arm64
             output: assinatura-darwin-arm64
+          - app: simulador
+            package: ./cmd/simulador
+            goos: linux
+            goarch: amd64
+            output: simulador-linux-amd64
+          - app: simulador
+            package: ./cmd/simulador
+            goos: windows
+            goarch: amd64
+            output: simulador-windows-amd64.exe
+          - app: simulador
+            package: ./cmd/simulador
+            goos: darwin
+            goarch: amd64
+            output: simulador-darwin-amd64
+          - app: simulador
+            package: ./cmd/simulador
+            goos: darwin
+            goarch: arm64
+            output: simulador-darwin-arm64
 
     steps:
       - name: Checkout
@@ -44,7 +72,7 @@ jobs:
           go build \
             -ldflags "-X main.version=dev-${{ github.sha }}" \
             -o ${{ matrix.output }} \
-            ./cmd/assinatura
+            ${{ matrix.package }}
 
       - name: Upload artefato
         uses: actions/upload-artifact@v4
