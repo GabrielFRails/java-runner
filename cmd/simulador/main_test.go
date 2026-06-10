@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"net"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -50,6 +52,25 @@ func TestStartCommandAcceptsPortAndSourceFlags(t *testing.T) {
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("expected start command to accept flags, got error: %v", err)
+	}
+}
+
+func TestStartCommandRejectsOccupiedPort(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to reserve test port: %v", err)
+	}
+	defer listener.Close()
+
+	port := listener.Addr().(*net.TCPAddr).Port
+	cmd := newRootCommand()
+	output := &bytes.Buffer{}
+	cmd.SetOut(output)
+	cmd.SetErr(output)
+	cmd.SetArgs([]string{"start", "--port", strconv.Itoa(port)})
+
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected start command to reject occupied port")
 	}
 }
 
