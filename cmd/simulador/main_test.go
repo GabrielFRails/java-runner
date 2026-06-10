@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +16,11 @@ import (
 	"github.com/kyriosdata/assinatura/internal/simulator"
 	"github.com/kyriosdata/assinatura/internal/storage"
 )
+
+func sha256Hex(content string) string {
+	sum := sha256.Sum256([]byte(content))
+	return hex.EncodeToString(sum[:])
+}
 
 func TestRootCommandDefinesLifecycleCommands(t *testing.T) {
 	t.Parallel()
@@ -69,7 +76,12 @@ func TestStartCommandAcceptsPortAndSourceFlags(t *testing.T) {
 	output := &bytes.Buffer{}
 	cmd.SetOut(output)
 	cmd.SetErr(output)
-	cmd.SetArgs([]string{"start", "--port", "18081", "--source", source.URL + "/simulador"})
+	cmd.SetArgs([]string{
+		"start",
+		"--port", "18081",
+		"--source", source.URL + "/simulador",
+		"--checksum", sha256Hex("fake simulator artifact"),
+	})
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("expected start command to accept flags, got error: %v", err)

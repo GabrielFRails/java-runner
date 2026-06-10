@@ -15,8 +15,9 @@ const defaultSimulatorPort = 8081
 var version = "dev"
 
 type simulatorOptions struct {
-	port   int
-	source string
+	port     int
+	source   string
+	checksum string
 }
 
 func newRootCommand() *cobra.Command {
@@ -40,6 +41,7 @@ func newRootCommand() *cobra.Command {
 	}
 	startCmd.Flags().IntVar(&options.port, "port", defaultSimulatorPort, "Porta HTTP do Simulador")
 	startCmd.Flags().StringVar(&options.source, "source", "", "URL alternativa para baixar o artefato do simulador")
+	startCmd.Flags().StringVar(&options.checksum, "checksum", "", "Checksum SHA-256 esperado do artefato do simulador")
 
 	stopCmd := &cobra.Command{
 		Use:   "stop",
@@ -76,7 +78,7 @@ func runStart(options *simulatorOptions, out io.Writer) error {
 		return err
 	}
 
-	artifactResult, err := simulator.EnsureArtifact(options.source)
+	artifactResult, err := simulator.EnsureArtifact(options.source, options.checksum)
 	if err != nil {
 		return err
 	}
@@ -90,6 +92,9 @@ func runStart(options *simulatorOptions, out io.Writer) error {
 		fmt.Fprintf(out, "Artefato : baixado em %s\n", artifactResult.Path)
 		if artifactResult.Version != "" {
 			fmt.Fprintf(out, "Release  : %s\n", artifactResult.Version)
+		}
+		if artifactResult.Checksum != "" {
+			fmt.Fprintf(out, "SHA-256  : %s\n", artifactResult.Checksum)
 		}
 	} else {
 		fmt.Fprintf(out, "Artefato : %s\n", artifactResult.Path)
