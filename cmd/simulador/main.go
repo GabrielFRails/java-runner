@@ -76,10 +76,23 @@ func runStart(options *simulatorOptions, out io.Writer) error {
 		return err
 	}
 
+	jarResult, err := simulator.EnsureJar(options.source)
+	if err != nil {
+		return err
+	}
+
 	fmt.Fprintf(out, "simulador start definido (porta: %d)\n", options.port)
 	fmt.Fprintln(out, "Porta    : disponível")
 	if options.source != "" {
 		fmt.Fprintf(out, "source   : %s\n", options.source)
+	}
+	if jarResult.Downloaded {
+		fmt.Fprintf(out, "JAR      : baixado em %s\n", jarResult.Path)
+		if jarResult.Version != "" {
+			fmt.Fprintf(out, "Release  : %s\n", jarResult.Version)
+		}
+	} else {
+		fmt.Fprintf(out, "JAR      : %s\n", jarResult.Path)
 	}
 	fmt.Fprintln(out, "implementação do ciclo de vida pendente")
 	return nil
