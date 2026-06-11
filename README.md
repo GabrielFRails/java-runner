@@ -510,4 +510,4 @@ sobre o diretorio, decidi deixar aonde está atualmente mesmo visto que estou av
 | Opção `--source <url>` permite indicar URL alternativa para download | TODO |
 | Versão já baixada não é baixada novamente (cache local em `~/.hubsaude/`) | TODO |
 | Verificação de integridade do download (checksum) | DONE |
-| Checksum SHA-256 e Sigstore Cosign incorporados no fluxo | TODO |
+| Checksum SHA-256 e Sigstore Cosign incorporados no fluxo | DONE |
