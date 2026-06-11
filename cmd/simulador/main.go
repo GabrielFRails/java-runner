@@ -11,18 +11,27 @@ import (
 )
 
 const defaultSimulatorPort = 8081
+const defaultCosignIdentityRegexp = "https://github.com/kyriosdata/assinatura"
+const defaultCosignOIDCIssuer = "https://token.actions.githubusercontent.com"
 
 var version = "dev"
+var ensureArtifactFn = simulator.EnsureArtifact
 
 type simulatorOptions struct {
-	port     int
-	source   string
-	checksum string
+	port                  int
+	source                string
+	checksum              string
+	cosignSignature       string
+	cosignCertificate     string
+	cosignIdentityRegexp  string
+	cosignCertificateOIDC string
 }
 
 func newRootCommand() *cobra.Command {
 	options := &simulatorOptions{
-		port: defaultSimulatorPort,
+		port:                  defaultSimulatorPort,
+		cosignIdentityRegexp:  defaultCosignIdentityRegexp,
+		cosignCertificateOIDC: defaultCosignOIDCIssuer,
 	}
 
 	rootCmd := &cobra.Command{
@@ -42,6 +51,10 @@ func newRootCommand() *cobra.Command {
 	startCmd.Flags().IntVar(&options.port, "port", defaultSimulatorPort, "Porta HTTP do Simulador")
 	startCmd.Flags().StringVar(&options.source, "source", "", "URL alternativa para baixar o artefato do simulador")
 	startCmd.Flags().StringVar(&options.checksum, "checksum", "", "Checksum SHA-256 esperado do artefato do simulador")
+	startCmd.Flags().StringVar(&options.cosignSignature, "cosign-signature", "", "URL da assinatura Cosign do artefato do simulador")
+	startCmd.Flags().StringVar(&options.cosignCertificate, "cosign-certificate", "", "URL do certificado Cosign do artefato do simulador")
+	startCmd.Flags().StringVar(&options.cosignIdentityRegexp, "cosign-identity-regexp", defaultCosignIdentityRegexp, "Identidade esperada no certificado Cosign")
+	startCmd.Flags().StringVar(&options.cosignCertificateOIDC, "cosign-oidc-issuer", defaultCosignOIDCIssuer, "Emissor OIDC esperado no certificado Cosign")
 
 	stopCmd := &cobra.Command{
 		Use:   "stop",
@@ -78,7 +91,12 @@ func runStart(options *simulatorOptions, out io.Writer) error {
 		return err
 	}
 
-	artifactResult, err := simulator.EnsureArtifact(options.source, options.checksum)
+	artifactResult, err := ensureArtifactFn(options.source, options.checksum, simulator.CosignOptions{
+		SignatureURL:          options.cosignSignature,
+		CertificateURL:        options.cosignCertificate,
+		IdentityRegexp:        options.cosignIdentityRegexp,
+		CertificateOIDCIssuer: options.cosignCertificateOIDC,
+	})
 	if err != nil {
 		return err
 	}
@@ -98,6 +116,9 @@ func runStart(options *simulatorOptions, out io.Writer) error {
 		}
 	} else {
 		fmt.Fprintf(out, "Artefato : %s\n", artifactResult.Path)
+	}
+	if artifactResult.CosignVerified {
+		fmt.Fprintln(out, "Cosign   : assinatura verificada")
 	}
 	fmt.Fprintln(out, "implementação do ciclo de vida pendente")
 	return nil

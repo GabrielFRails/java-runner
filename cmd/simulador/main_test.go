@@ -5,10 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -53,24 +49,34 @@ func TestVersionCommandPrintsCurrentVersion(t *testing.T) {
 }
 
 func TestStartCommandAcceptsPortAndSourceFlags(t *testing.T) {
-	execPath, err := os.Executable()
-	if err != nil {
-		t.Fatalf("failed to locate test executable: %v", err)
-	}
-	execDir := filepath.Dir(execPath)
-	artifactPath := filepath.Join(execDir, "simulador-managed")
-	if err := os.Remove(artifactPath); err != nil && !os.IsNotExist(err) {
-		t.Fatalf("failed to remove stale test artifact: %v", err)
+	restore := ensureArtifactFn
+	ensureArtifactFn = func(sourceURL string, expectedChecksum string, cosign simulator.CosignOptions) (*simulator.ArtifactResult, error) {
+		if sourceURL != "https://example.test/simulador" {
+			t.Fatalf("unexpected source URL: %q", sourceURL)
+		}
+		if expectedChecksum != sha256Hex("fake simulator artifact") {
+			t.Fatalf("unexpected checksum: %q", expectedChecksum)
+		}
+		if cosign.SignatureURL != "https://example.test/simulador.sig" {
+			t.Fatalf("unexpected signature URL: %q", cosign.SignatureURL)
+		}
+		if cosign.CertificateURL != "https://example.test/simulador.pem" {
+			t.Fatalf("unexpected certificate URL: %q", cosign.CertificateURL)
+		}
+		if cosign.IdentityRegexp == "" || cosign.CertificateOIDCIssuer == "" {
+			t.Fatal("expected default Cosign identity and issuer")
+		}
+		return &simulator.ArtifactResult{
+			Path:           "/tmp/simulador-managed",
+			Downloaded:     true,
+			SourceURL:      sourceURL,
+			Checksum:       expectedChecksum,
+			CosignVerified: true,
+		}, nil
 	}
 	t.Cleanup(func() {
-		_ = os.Remove(artifactPath)
+		ensureArtifactFn = restore
 	})
-
-	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("fake simulator artifact"))
-	}))
-	defer source.Close()
 
 	cmd := newRootCommand()
 	output := &bytes.Buffer{}
@@ -79,20 +85,14 @@ func TestStartCommandAcceptsPortAndSourceFlags(t *testing.T) {
 	cmd.SetArgs([]string{
 		"start",
 		"--port", "18081",
-		"--source", source.URL + "/simulador",
+		"--source", "https://example.test/simulador",
 		"--checksum", sha256Hex("fake simulator artifact"),
+		"--cosign-signature", "https://example.test/simulador.sig",
+		"--cosign-certificate", "https://example.test/simulador.pem",
 	})
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("expected start command to accept flags, got error: %v", err)
-	}
-
-	got, err := os.ReadFile(artifactPath)
-	if err != nil {
-		t.Fatalf("expected simulator artifact to be downloaded: %v", err)
-	}
-	if string(got) != "fake simulator artifact" {
-		t.Fatalf("unexpected downloaded artifact content: %q", got)
 	}
 }
 

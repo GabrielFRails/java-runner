@@ -15,6 +15,27 @@ func sha256Hex(content string) string {
 	return hex.EncodeToString(sum[:])
 }
 
+func withCosignVerifyStub(t *testing.T) {
+	t.Helper()
+
+	restore := verifyCosignBlobFn
+	verifyCosignBlobFn = func(artifactPath string, signaturePath string, certificatePath string, options CosignOptions) error {
+		return nil
+	}
+	t.Cleanup(func() {
+		verifyCosignBlobFn = restore
+	})
+}
+
+func testCosignOptions(serverURL string) CosignOptions {
+	return CosignOptions{
+		SignatureURL:          serverURL + "/simulador.sig",
+		CertificateURL:        serverURL + "/simulador.pem",
+		IdentityRegexp:        "https://github.com/kyriosdata/assinatura",
+		CertificateOIDCIssuer: "https://token.actions.githubusercontent.com",
+	}
+}
+
 func withExecutablePathStub(t *testing.T, path string) {
 	t.Helper()
 
@@ -46,7 +67,7 @@ func TestEnsureArtifactReturnsExistingLocalArtifact(t *testing.T) {
 		t.Fatalf("failed to create local artifact: %v", err)
 	}
 
-	result, err := EnsureArtifact("", "")
+	result, err := EnsureArtifact("", "", CosignOptions{})
 	if err != nil {
 		t.Fatalf("EnsureArtifact failed: %v", err)
 	}
@@ -62,14 +83,26 @@ func TestEnsureArtifactDownloadsFromSourceWhenMissing(t *testing.T) {
 	dir := t.TempDir()
 	artifactPath := filepath.Join(dir, localSimulatorArtifactName)
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
+	withCosignVerifyStub(t)
 
 	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("downloaded"))
+		switch r.URL.Path {
+		case "/simulador":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("downloaded"))
+		case "/simulador.sig":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("signature"))
+		case "/simulador.pem":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("certificate"))
+		default:
+			http.NotFound(w, r)
+		}
 	}))
 	defer source.Close()
 
-	result, err := EnsureArtifact(source.URL+"/simulador", sha256Hex("downloaded"))
+	result, err := EnsureArtifact(source.URL+"/simulador", sha256Hex("downloaded"), testCosignOptions(source.URL))
 	if err != nil {
 		t.Fatalf("EnsureArtifact failed: %v", err)
 	}
@@ -100,7 +133,7 @@ func TestEnsureArtifactRejectsSourceDownloadWhenChecksumDoesNotMatch(t *testing.
 	}))
 	defer source.Close()
 
-	if _, err := EnsureArtifact(source.URL+"/simulador", sha256Hex("other content")); err == nil {
+	if _, err := EnsureArtifact(source.URL+"/simulador", sha256Hex("other content"), testCosignOptions(source.URL)); err == nil {
 		t.Fatal("expected checksum mismatch to fail")
 	}
 	if _, err := os.Stat(artifactPath); !os.IsNotExist(err) {
@@ -108,11 +141,30 @@ func TestEnsureArtifactRejectsSourceDownloadWhenChecksumDoesNotMatch(t *testing.
 	}
 }
 
+func TestEnsureArtifactRejectsSourceDownloadWithoutCosignSignature(t *testing.T) {
+	dir := t.TempDir()
+	artifactPath := filepath.Join(dir, localSimulatorArtifactName)
+	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
+
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("downloaded"))
+	}))
+	defer source.Close()
+
+	if _, err := EnsureArtifact(source.URL+"/simulador", sha256Hex("downloaded"), CosignOptions{}); err == nil {
+		t.Fatal("expected missing Cosign metadata to fail")
+	}
+	if _, err := os.Stat(artifactPath); !os.IsNotExist(err) {
+		t.Fatalf("expected artifact not to be installed without Cosign verification, got err=%v", err)
+	}
+}
+
 func TestEnsureArtifactRequiresChecksumForSourceDownload(t *testing.T) {
 	dir := t.TempDir()
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
 
-	if _, err := EnsureArtifact("https://example.test/simulador", ""); err == nil {
+	if _, err := EnsureArtifact("https://example.test/simulador", "", CosignOptions{}); err == nil {
 		t.Fatal("expected source download without checksum to fail")
 	}
 }
@@ -122,7 +174,7 @@ func TestEnsureArtifactReportsLatestReleaseLookupFailure(t *testing.T) {
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
 	withLatestReleaseURLStub(t, "://invalid")
 
-	if _, err := EnsureArtifact("", ""); err == nil {
+	if _, err := EnsureArtifact("", "", CosignOptions{}); err == nil {
 		t.Fatal("expected missing artifact without source to fail")
 	}
 }
@@ -131,6 +183,7 @@ func TestEnsureArtifactDownloadsFromLatestGitHubReleaseWhenSourceIsMissing(t *te
 	dir := t.TempDir()
 	artifactPath := filepath.Join(dir, localSimulatorArtifactName)
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
+	withCosignVerifyStub(t)
 
 	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -142,12 +195,20 @@ func TestEnsureArtifactDownloadsFromLatestGitHubReleaseWhenSourceIsMissing(t *te
 				"assets": [
 					{"name": "other.jar", "browser_download_url": "` + serverURL + `/other.jar"},
 					{"name": "simulador-v1.2.3-darwin-arm64", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64"},
+					{"name": "simulador-v1.2.3-darwin-arm64.sig", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64.sig"},
+					{"name": "simulador-v1.2.3-darwin-arm64.pem", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64.pem"},
 					{"name": "checksums.txt", "browser_download_url": "` + serverURL + `/checksums.txt"}
 				]
 			}`))
 		case "/simulador-v1.2.3-darwin-arm64":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("from latest release"))
+		case "/simulador-v1.2.3-darwin-arm64.sig":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("signature"))
+		case "/simulador-v1.2.3-darwin-arm64.pem":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("certificate"))
 		case "/checksums.txt":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(sha256Hex("from latest release") + "  simulador-v1.2.3-darwin-arm64\n"))
@@ -159,7 +220,10 @@ func TestEnsureArtifactDownloadsFromLatestGitHubReleaseWhenSourceIsMissing(t *te
 	defer server.Close()
 	withLatestReleaseURLStub(t, server.URL+"/repos/example/project/releases/latest")
 
-	result, err := EnsureArtifact("", "")
+	result, err := EnsureArtifact("", "", CosignOptions{
+		IdentityRegexp:        "https://github.com/kyriosdata/assinatura",
+		CertificateOIDCIssuer: "https://token.actions.githubusercontent.com",
+	})
 	if err != nil {
 		t.Fatalf("EnsureArtifact failed: %v", err)
 	}
@@ -196,7 +260,7 @@ func TestEnsureArtifactReportsMissingAssetInLatestRelease(t *testing.T) {
 	defer server.Close()
 	withLatestReleaseURLStub(t, server.URL)
 
-	if _, err := EnsureArtifact("", ""); err == nil {
+	if _, err := EnsureArtifact("", "", CosignOptions{}); err == nil {
 		t.Fatal("expected missing release asset to fail")
 	}
 }
@@ -212,7 +276,7 @@ func TestEnsureArtifactReportsInvalidLatestReleaseJSON(t *testing.T) {
 	defer server.Close()
 	withLatestReleaseURLStub(t, server.URL)
 
-	if _, err := EnsureArtifact("", ""); err == nil {
+	if _, err := EnsureArtifact("", "", CosignOptions{}); err == nil {
 		t.Fatal("expected invalid release JSON to fail")
 	}
 }
@@ -220,6 +284,7 @@ func TestEnsureArtifactReportsInvalidLatestReleaseJSON(t *testing.T) {
 func TestEnsureArtifactUsesReleaseAssetDigestAsChecksum(t *testing.T) {
 	dir := t.TempDir()
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
+	withCosignVerifyStub(t)
 
 	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -229,12 +294,20 @@ func TestEnsureArtifactUsesReleaseAssetDigestAsChecksum(t *testing.T) {
 			_, _ = w.Write([]byte(`{
 				"tag_name": "v1.2.3",
 				"assets": [
-					{"name": "simulador-v1.2.3-darwin-arm64", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64", "digest": "sha256:` + sha256Hex("release digest") + `"}
+					{"name": "simulador-v1.2.3-darwin-arm64", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64", "digest": "sha256:` + sha256Hex("release digest") + `"},
+					{"name": "simulador-v1.2.3-darwin-arm64.sig", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64.sig"},
+					{"name": "simulador-v1.2.3-darwin-arm64.pem", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64.pem"}
 				]
 			}`))
 		case "/simulador-v1.2.3-darwin-arm64":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("release digest"))
+		case "/simulador-v1.2.3-darwin-arm64.sig":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("signature"))
+		case "/simulador-v1.2.3-darwin-arm64.pem":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("certificate"))
 		default:
 			http.NotFound(w, r)
 		}
@@ -243,7 +316,10 @@ func TestEnsureArtifactUsesReleaseAssetDigestAsChecksum(t *testing.T) {
 	defer server.Close()
 	withLatestReleaseURLStub(t, server.URL+"/release")
 
-	result, err := EnsureArtifact("", "")
+	result, err := EnsureArtifact("", "", CosignOptions{
+		IdentityRegexp:        "https://github.com/kyriosdata/assinatura",
+		CertificateOIDCIssuer: "https://token.actions.githubusercontent.com",
+	})
 	if err != nil {
 		t.Fatalf("EnsureArtifact failed: %v", err)
 	}
@@ -255,6 +331,7 @@ func TestEnsureArtifactUsesReleaseAssetDigestAsChecksum(t *testing.T) {
 func TestEnsureArtifactAcceptsProvidedChecksumForLatestRelease(t *testing.T) {
 	dir := t.TempDir()
 	withExecutablePathStub(t, filepath.Join(dir, "simulador"))
+	withCosignVerifyStub(t)
 
 	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -264,12 +341,20 @@ func TestEnsureArtifactAcceptsProvidedChecksumForLatestRelease(t *testing.T) {
 			_, _ = w.Write([]byte(`{
 				"tag_name": "v1.2.3",
 				"assets": [
-					{"name": "simulador-v1.2.3-darwin-arm64", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64"}
+					{"name": "simulador-v1.2.3-darwin-arm64", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64"},
+					{"name": "simulador-v1.2.3-darwin-arm64.sig", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64.sig"},
+					{"name": "simulador-v1.2.3-darwin-arm64.pem", "browser_download_url": "` + serverURL + `/simulador-v1.2.3-darwin-arm64.pem"}
 				]
 			}`))
 		case "/simulador-v1.2.3-darwin-arm64":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("provided checksum"))
+		case "/simulador-v1.2.3-darwin-arm64.sig":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("signature"))
+		case "/simulador-v1.2.3-darwin-arm64.pem":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("certificate"))
 		default:
 			http.NotFound(w, r)
 		}
@@ -278,7 +363,10 @@ func TestEnsureArtifactAcceptsProvidedChecksumForLatestRelease(t *testing.T) {
 	defer server.Close()
 	withLatestReleaseURLStub(t, server.URL+"/release")
 
-	result, err := EnsureArtifact("", sha256Hex("provided checksum"))
+	result, err := EnsureArtifact("", sha256Hex("provided checksum"), CosignOptions{
+		IdentityRegexp:        "https://github.com/kyriosdata/assinatura",
+		CertificateOIDCIssuer: "https://token.actions.githubusercontent.com",
+	})
 	if err != nil {
 		t.Fatalf("EnsureArtifact failed: %v", err)
 	}

@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -21,16 +22,25 @@ const simulatorReleaseAssetArch = "arm64"                                       
 const localSimulatorArtifactName = "simulador-managed"
 
 type ArtifactResult struct {
-	Path       string
-	Downloaded bool
-	SourceURL  string
-	Version    string
-	Checksum   string
+	Path           string
+	Downloaded     bool
+	SourceURL      string
+	Version        string
+	Checksum       string
+	CosignVerified bool
+}
+
+type CosignOptions struct {
+	SignatureURL          string
+	CertificateURL        string
+	IdentityRegexp        string
+	CertificateOIDCIssuer string
 }
 
 var executablePathFn = os.Executable
 var artifactHTTPClient = &http.Client{Timeout: 2 * time.Minute}
 var latestReleaseURL = defaultLatestReleaseURL
+var verifyCosignBlobFn = runCosignVerifyBlob
 
 type githubRelease struct {
 	TagName string `json:"tag_name"`
@@ -50,7 +60,7 @@ func LocateArtifact() (string, error) {
 	return filepath.Join(filepath.Dir(execPath), localSimulatorArtifactName), nil
 }
 
-func EnsureArtifact(sourceURL string, expectedChecksum string) (*ArtifactResult, error) {
+func EnsureArtifact(sourceURL string, expectedChecksum string, cosign CosignOptions) (*ArtifactResult, error) {
 	artifactPath, err := LocateArtifact()
 	if err != nil {
 		return nil, err
@@ -67,13 +77,20 @@ func EnsureArtifact(sourceURL string, expectedChecksum string) (*ArtifactResult,
 				return nil, err
 			}
 		}
-		return &ArtifactResult{Path: artifactPath, Checksum: expectedChecksum}, nil
+		cosignVerified := false
+		if hasCosignMetadata(cosign) {
+			if err := verifyCosignSignature(artifactPath, cosign); err != nil {
+				return nil, err
+			}
+			cosignVerified = true
+		}
+		return &ArtifactResult{Path: artifactPath, Checksum: expectedChecksum, CosignVerified: cosignVerified}, nil
 	} else if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("não foi possível verificar artefato local do simulador: %w", err)
 	}
 
 	if sourceURL == "" {
-		assetURL, version, releaseChecksum, err := latestSimulatorReleaseAsset(expectedChecksum == "")
+		assetURL, version, releaseChecksum, releaseCosign, err := latestSimulatorReleaseAsset(expectedChecksum == "")
 		if err != nil {
 			return nil, err
 		}
@@ -81,16 +98,22 @@ func EnsureArtifact(sourceURL string, expectedChecksum string) (*ArtifactResult,
 		if expectedChecksum == "" {
 			expectedChecksum = releaseChecksum
 		}
+		if cosign.SignatureURL == "" {
+			cosign.SignatureURL = releaseCosign.SignatureURL
+		}
+		if cosign.CertificateURL == "" {
+			cosign.CertificateURL = releaseCosign.CertificateURL
+		}
 		if expectedChecksum == "" {
 			return nil, fmt.Errorf("checksum SHA-256 esperado não encontrado para artefato do simulador na release mais recente")
 		}
 
-		if err := downloadArtifact(sourceURL, artifactPath, expectedChecksum); err != nil {
+		if err := downloadArtifact(sourceURL, artifactPath, expectedChecksum, cosign); err != nil {
 			return nil, err
 		}
 
 		return &ArtifactResult{
-			Path: artifactPath, Downloaded: true, SourceURL: sourceURL, Version: version, Checksum: expectedChecksum,
+			Path: artifactPath, Downloaded: true, SourceURL: sourceURL, Version: version, Checksum: expectedChecksum, CosignVerified: true,
 		}, nil
 	}
 
@@ -98,14 +121,14 @@ func EnsureArtifact(sourceURL string, expectedChecksum string) (*ArtifactResult,
 		return nil, fmt.Errorf("checksum SHA-256 esperado é obrigatório para baixar artefato do simulador via --source")
 	}
 
-	if err := downloadArtifact(sourceURL, artifactPath, expectedChecksum); err != nil {
+	if err := downloadArtifact(sourceURL, artifactPath, expectedChecksum, cosign); err != nil {
 		return nil, err
 	}
 
-	return &ArtifactResult{Path: artifactPath, Downloaded: true, SourceURL: sourceURL, Checksum: expectedChecksum}, nil
+	return &ArtifactResult{Path: artifactPath, Downloaded: true, SourceURL: sourceURL, Checksum: expectedChecksum, CosignVerified: true}, nil
 }
 
-func downloadArtifact(sourceURL string, dest string, expectedChecksum string) error {
+func downloadArtifact(sourceURL string, dest string, expectedChecksum string, cosign CosignOptions) error {
 	resp, err := getURL(sourceURL)
 	if err != nil {
 		return fmt.Errorf("erro ao baixar artefato do simulador: %w", err)
@@ -139,6 +162,9 @@ func downloadArtifact(sourceURL string, dest string, expectedChecksum string) er
 	if err := verifySHA256(hasher, expectedChecksum); err != nil {
 		return err
 	}
+	if err := verifyCosignSignature(tmpPath, cosign); err != nil {
+		return err
+	}
 
 	if err := os.Rename(tmpPath, dest); err != nil {
 		return fmt.Errorf("não foi possível instalar artefato do simulador: %w", err)
@@ -150,31 +176,38 @@ func downloadArtifact(sourceURL string, dest string, expectedChecksum string) er
 	return nil
 }
 
-func latestSimulatorReleaseAsset(requireChecksum bool) (string, string, string, error) {
+func latestSimulatorReleaseAsset(requireChecksum bool) (string, string, string, CosignOptions, error) {
 	resp, err := getURL(latestReleaseURL)
 	if err != nil {
-		return "", "", "", fmt.Errorf("erro ao consultar GitHub Releases: %w", err)
+		return "", "", "", CosignOptions{}, fmt.Errorf("erro ao consultar GitHub Releases: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return "", "", "", fmt.Errorf("release mais recente não encontrada no GitHub")
+		return "", "", "", CosignOptions{}, fmt.Errorf("release mais recente não encontrada no GitHub")
 	}
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return "", "", "", fmt.Errorf("consulta ao GitHub Releases retornou status %d", resp.StatusCode)
+		return "", "", "", CosignOptions{}, fmt.Errorf("consulta ao GitHub Releases retornou status %d", resp.StatusCode)
 	}
 
 	var release githubRelease
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
-		return "", "", "", fmt.Errorf("resposta inválida do GitHub Releases: %w", err)
+		return "", "", "", CosignOptions{}, fmt.Errorf("resposta inválida do GitHub Releases: %w", err)
 	}
 
 	assetName := simulatorReleaseAssetName(release.TagName)
 	var assetURL, digest, checksumURL string
+	releaseCosign := CosignOptions{}
 	for _, asset := range release.Assets {
 		if asset.Name == assetName && asset.BrowserDownloadURL != "" {
 			assetURL = asset.BrowserDownloadURL
 			digest = asset.Digest
+		}
+		if asset.Name == assetName+".sig" && asset.BrowserDownloadURL != "" {
+			releaseCosign.SignatureURL = asset.BrowserDownloadURL
+		}
+		if asset.Name == assetName+".pem" && asset.BrowserDownloadURL != "" {
+			releaseCosign.CertificateURL = asset.BrowserDownloadURL
 		}
 		if isChecksumAssetName(asset.Name) && asset.BrowserDownloadURL != "" {
 			checksumURL = asset.BrowserDownloadURL
@@ -183,19 +216,19 @@ func latestSimulatorReleaseAsset(requireChecksum bool) (string, string, string, 
 
 	if assetURL != "" {
 		if !requireChecksum {
-			return assetURL, release.TagName, "", nil
+			return assetURL, release.TagName, "", releaseCosign, nil
 		}
 		checksum, err := checksumFromRelease(assetName, digest, checksumURL)
 		if err != nil {
-			return "", "", "", err
+			return "", "", "", CosignOptions{}, err
 		}
-		return assetURL, release.TagName, checksum, nil
+		return assetURL, release.TagName, checksum, releaseCosign, nil
 	}
 
 	if release.TagName == "" {
-		return "", "", "", fmt.Errorf("asset do simulador não encontrado na release mais recente")
+		return "", "", "", CosignOptions{}, fmt.Errorf("asset do simulador não encontrado na release mais recente")
 	}
-	return "", "", "", fmt.Errorf("asset %s não encontrado na release %s", assetName, release.TagName)
+	return "", "", "", CosignOptions{}, fmt.Errorf("asset %s não encontrado na release %s", assetName, release.TagName)
 }
 
 func simulatorReleaseAssetName(tagName string) string {
@@ -310,6 +343,93 @@ func verifySHA256(hasher hash.Hash, expectedChecksum string) error {
 		return fmt.Errorf("checksum SHA-256 do artefato do simulador não confere: esperado %s, obtido %s", expectedChecksum, actual)
 	}
 	return nil
+}
+
+func verifyCosignSignature(artifactPath string, options CosignOptions) error {
+	if options.SignatureURL == "" {
+		return fmt.Errorf("assinatura Cosign do artefato do simulador não encontrada")
+	}
+	if options.CertificateURL == "" {
+		return fmt.Errorf("certificado Cosign do artefato do simulador não encontrado")
+	}
+	if options.IdentityRegexp == "" {
+		return fmt.Errorf("identidade esperada do certificado Cosign não informada")
+	}
+	if options.CertificateOIDCIssuer == "" {
+		return fmt.Errorf("emissor OIDC esperado do certificado Cosign não informado")
+	}
+
+	signaturePath, err := downloadSidecar(options.SignatureURL, "simulador-cosign-*.sig")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(signaturePath)
+
+	certificatePath, err := downloadSidecar(options.CertificateURL, "simulador-cosign-*.pem")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(certificatePath)
+
+	if err := verifyCosignBlobFn(artifactPath, signaturePath, certificatePath, options); err != nil {
+		return err
+	}
+	return nil
+}
+
+func runCosignVerifyBlob(artifactPath string, signaturePath string, certificatePath string, options CosignOptions) error {
+	cmd := exec.Command(
+		"cosign",
+		"verify-blob",
+		"--certificate", certificatePath,
+		"--signature", signaturePath,
+		"--certificate-identity-regexp", options.IdentityRegexp,
+		"--certificate-oidc-issuer", options.CertificateOIDCIssuer,
+		artifactPath,
+	)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		detail := strings.TrimSpace(string(output))
+		if detail == "" {
+			detail = err.Error()
+		}
+		return fmt.Errorf("assinatura Cosign do artefato do simulador não confere: %s", detail)
+	}
+	return nil
+}
+
+func hasCosignMetadata(options CosignOptions) bool {
+	return options.SignatureURL != "" || options.CertificateURL != ""
+}
+
+func downloadSidecar(sourceURL string, pattern string) (string, error) {
+	resp, err := getURL(sourceURL)
+	if err != nil {
+		return "", fmt.Errorf("erro ao baixar metadado Cosign do simulador: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return "", fmt.Errorf("download do metadado Cosign do simulador retornou status %d", resp.StatusCode)
+	}
+
+	tmp, err := os.CreateTemp("", pattern)
+	if err != nil {
+		return "", fmt.Errorf("não foi possível criar arquivo temporário para metadado Cosign: %w", err)
+	}
+	tmpPath := tmp.Name()
+
+	if _, err := io.Copy(tmp, resp.Body); err != nil {
+		tmp.Close()
+		os.Remove(tmpPath)
+		return "", fmt.Errorf("não foi possível salvar metadado Cosign do simulador: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmpPath)
+		return "", fmt.Errorf("não foi possível fechar metadado Cosign do simulador: %w", err)
+	}
+
+	return tmpPath, nil
 }
 
 func normalizeSHA256(checksum string) (string, error) {
